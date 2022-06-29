@@ -30,41 +30,41 @@ my_theme = Get.Theme(text.size = 22)
 ui <- shinyUI(fluidPage(
     withMathJax(),
     # Application title
-    titlePanel("Microbial lag phase length calculator"),
+    titlePanel("Microbial lag phase duration calculator"),
     mainPanel(
       tabsetPanel(type = "tabs",
           tabPanel("Home",
                    br(),
-                    strong("The MICROBIAL LAG PHASE LENGTH CALCULATOR"),
+                    strong("The MICROBIAL LAG PHASE DURATION CALCULATOR"),
                     div("is an online tool designed for rapid analyses of growth curves (changes in microbial density monitored in time). 
-                    It allows easy and fast determination of lag phase length with the four most commonly used methods (described below) for user-specified datasets. 
+                    It allows for an easy and fast determination of the lag phase duration with the four most commonly used methods (described below) for user-specified datasets. 
                       If you find our tool useful, please cite"),
-                    strong("Opalek & Smug, 2022 (LINK)."),
+                    strong("Opalek & Smug, 2022... []."),
                     br(),
                     div("
-                      In the publication, you can find a more detailed description of methods available here together with a discussion of their advantages and biases. 
-                      We also discuss possible challenges one can meet while analysing experimental growth curve data and point out where special attention should be put to get the most reliable outcomes."),
+                      In the publication, you can find a more detailed description of lag duration determination methods, together with a discussion of their advantages and biases. 
+                      We also discuss possible challenges related to each of the mrthods and point out where special attention should be paid to get the most reliable outcomes."),
           
                     br(),
                     strong("INSTRUCTION"),
-                    div("1.	Browse your dataset.The accepted file formats are csv and txt. The dataset must contain two columns:"),
+                   br(),
+                   strong("1.	Upload your dataset."),
+                   div("The accepted file formats are csv and txt. The dataset must contain two columns as specified below:"),
                     div("The first column: time (preferably in hours)"),
                     div("The second column: biomass (preferably in CFU/mL)"),
                     div("We recommend using biomass values instead of raw absorbance measurements as the correlation between biomass and absorbance is rarely linear. 
                       However, if you’re unable to provide biomass values, the calculator will also work for absorbance data.
-                      After browsing your dataset, specify column and decimal separator
-                      If the dataset was properly uploaded you would see provided values in the table below."),
-                    br(),
-                    div("2.	Chose lag calculation method.
-                    Within this calculator we included the four most commonly used methods of lag calculations:"),
-                    div("BASED ON MAX GROWTH ACCELERATION - the point of the growth curve where the second derivative is maximal is identified, in other words, the method identifies maximal inflection of the growth curve"),
-                    div("TANGENT METHOD - the intersection of the initial density line and the tangent line to the part of the curve where the growth rate is maximal"),
-                    div("BASED ON BIOMASS INCREASE - an increase of biomass (or absorbance) by the scientist-specified value from the beginning of growth (or minimal biomass/absorbance value)"),
-                    div("BASED ON PARAMETER FITTING TO A MODEL - predicted values?"),
-                     br(),
-                    div("More details about models can be found in Opalek & Smug, 2022"),
-                    br(),
-                    div("3.	Adjust parameters of a model. In the second tab, you can find specific parameters for each lag calculation method that you can adjust to best fit your dataset."),
+                      After uploading your dataset, specify the column and decimal separators."),
+                   strong("2. Use some data pre-processing if needed"),
+                   br(),
+                   strong("3.	Chose lag duration calculation method"),
+                   div("
+                    Within this calculator we allow for a choice of one of the four most commonly used methods of lag duration calculation:"),
+                    div("MAX GROWTH ACCELERATION - finds the point of the growth curve where the second derivative is maximal"),
+                    div("TANGENT METHOD - the intersection of the initial density line and the  line tangent to the part of the curve where the growth rate is maximal"),
+                    div("BIOMASS INCREASE - an increase of biomass (or absorbance) by the user specified value from the beginning of growth (or minimal biomass/absorbance value)"),
+                    div("PARAMETER FITTING TO A MODEL - predicted values?"),
+                    strong("4.	Adjust parameters of the selected model."),
                     ),
           tabPanel("Upload growth curve", 
           tags$head(tags$style(type="text/css", "
