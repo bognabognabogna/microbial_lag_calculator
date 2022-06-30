@@ -53,7 +53,9 @@ Fit.Exponential.Lag.To.Curve = function(data, N0, tangent.method = "to.point", n
            db = log.biomass - dplyr::lag(log.biomass,1),
            dt = time - dplyr::lag(time,1),
            time.diff = (time + dplyr::lag(time))/2,
-           db_over_dt = db/dt)
+           central_scheme_db = dplyr::lead(log.biomass) - dplyr::lag(log.biomass,1),
+           central_scheme_dt = dplyr::lead(time) - dplyr::lag(time,1),
+           db_over_dt = central_scheme_db/central_scheme_dt) #db/dt)
   log.N0 = log(N0)
   # Get the maximum growth rate
   max.growth.rate = max(data$db_over_dt, na.rm = TRUE)
