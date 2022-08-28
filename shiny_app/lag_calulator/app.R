@@ -13,6 +13,7 @@ library(deSolve)
 library(DEoptim)
 library(nlsMicrobio)
 library(tools)
+library(minpack.lm)
 library(shinydisconnect)
 
 
@@ -176,8 +177,8 @@ ui <- shinyUI(fluidPage(
                               br(),
                               selectInput("algorithm",
                                           label = "NLS fitting algorithm (defaults to Gauss-Newton)",
-                                          choices = c("default", "plinear", "port", "nl2sol"),
-                                          selected = "default"),
+                                          choices = c("Levenberg-Marquardt","port", "plinear", "port", "nl2sol"),
+                                          selected = "Levenberg-Marquardt"),
                               br(),
                               numericInput("max.iter",
                                            label = "Max number of iterations",
@@ -186,6 +187,11 @@ ui <- shinyUI(fluidPage(
                                            max = 1000,
                                            step = 100),
                               br(),
+                              selectInput("own_init_params",
+                                          label = "Do you want to specify \nyour own initial guesses n\for the parameters?",
+                                          choices = c("No", "Yes"),
+                                          selected = "No"),
+                              conditionalPanel(condition = "input.own_init_params == 'Yes'",
                               h4("Initial parameter values"),
                               numericInput("init.lag",
                                            label = "Initial guess for the lag [h]",
@@ -198,7 +204,7 @@ ui <- shinyUI(fluidPage(
                                            value = 0.1,
                                            min = 0, 
                                            max = 1,
-                                           step = 0.01)
+                                           step = 0.01)),
              ),
              conditionalPanel(condition = "input.method == 'biomass increase'",
                               h4("Parameters related to biomass increase method"),
@@ -260,10 +266,16 @@ server <- shinyServer(function(input, output) {
                   tangent.method = input$tangentmethod,
                   threshold = input$threshold,
                   n.points.in.curve = as.numeric(input$n.points.in.curve),
-                  init.growth.rate = input$init.growth.rate, 
-                  init.lag = input$init.lag,
+                  init.growth.rate = NULL,
+                  init.lag = NULL,
                   algorithm = input$algorithm, 
                   max.iter = input$max.iter)
+
+      if (input$own_init_params == 'Yes') {
+      pars$init.growth.rate = input$init.growth.rate
+      pars$init.lag = input$init.lag
+      }
+      return(pars)
       
     })
     
