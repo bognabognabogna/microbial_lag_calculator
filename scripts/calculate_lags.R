@@ -13,7 +13,8 @@ library(minpack.lm)
 library(dplyr)
 SHINY.APP.PATH = "/Users/bognasmug/Documents/GitHub/microbial_lag_calulator/shiny_app/lag_calulator/"
 source(sprintf("%sR/lags_helper.R", SHINY.APP.PATH))
-OUTPUT_FIGS_PATH = "~/MGG Dropbox/Bogna Smug/Projects/Quiesence/2022_Lags/Figures/new/"
+OUTPUT_FIGS_PATH = "~/MGG Dropbox/Bogna Smug/Projects/Quiesence/2022_Lags/Figures/2022_08_31/"
+dir.create(OUTPUT_FIGS_PATH)
 curve_names = paste0("curve_", 1:11)
 
 text_size = 22

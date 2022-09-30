@@ -359,15 +359,19 @@ Calculate.Lag.Fitting.To.Baranyi.With.Lag = function(growthcurve, LOG10N0 = NULL
 }
 
 
-Calculate.Lagistic.Fit.Lag = function(data, N0, init.growth.rate = NULL, init.K = NULL, init.lag = NULL, algorithm, max.iter) {
+Calculate.Lagistic.Fit.Lag = function(data, N0, init.growth.rate = NULL, init.K = NULL, init.lag = NULL, algorithm, max.iter, return.all.params = FALSE,
+                                      low.bound.for.gr = 0.2, upper.bound.for.gr = 0.8) {
   if (!("curve_id" %in% names(data))) {
     data$curve_id = NA
   }
   #if (is.null(init.K)) {
   #  init.K = 10*mean(N0$N0)
   #}
+  i=0
+  fiting.list = list()
   data.new = data %>% filter(FALSE) %>% mutate( time = numeric(0), biomass = numeric(0),curve_id = character(0), lag = numeric(0), log.info = character(0))
   for (this_curve_id in unique(data$curve_id)) {
+    i = i+1
     data_this_curve = data %>% filter(curve_id == this_curve_id) %>% select(time, biomass, curve_id)
     this.N0 = N0 %>% filter(curve_id == this_curve_id) %>% pull(N0)
     
@@ -383,7 +387,7 @@ Calculate.Lagistic.Fit.Lag = function(data, N0, init.growth.rate = NULL, init.K 
     if (is.null(init.growth.rate)) {
       data_this_curve_exponential = data_this_curve %>%
         mutate(
-          max.biomass = max(biomass),
+          max.biomass = max(data_this_curve$biomass),
           min.threshold = this.N0 + 0.2*(max.biomass - this.N0),
           max.threshold = this.N0 + 0.8*(max.biomass - this.N0)) %>%
         # take only the points that are in between min and max
@@ -414,9 +418,16 @@ Calculate.Lagistic.Fit.Lag = function(data, N0, init.growth.rate = NULL, init.K 
       mutate(lag = round(this.fitting.object$lagN,1))
     data_this_curve$predicted = if (!is.na(this.fitting.object$nlsres)) {predict(this.fitting.object$nlsres, data_this_curve) } else {data_this_curve$predicted = NA}
     data.new = rbind(data.new, data_this_curve)
+    
+    fiting.list[[i]] = this.fitting.object$nlsres
   }
   data.new$lag.calculation.method = "Fitting lagged logistic"
+  
+  if (!return.all.params) {
   return(data.new)
+  } else {
+  return(list(data.new = data.new, modfit = fiting.list))  
+  }
 }
   
 Calculate.Baranyi.Fit.Lag = function(data, N0, init.lag = NULL, init.growth.rate = NULL) {
@@ -490,7 +501,7 @@ Plot.Data = function(data.new) {
 
 
 
-Plot.Lag.Fit = function(data.new) {
+Plot.Lag.Fit = function(data.new, print.lag.info = TRUE) {
   data.new = data.new %>%
     group_by(curve_id) %>%
     mutate(x.mid = mean(time),
@@ -526,7 +537,6 @@ Plot.Lag.Fit = function(data.new) {
   g = ggplot(data.new)  + 
     geom_vline(aes(xintercept = lag), size = size.lag.line, col = "red", linetype = "dashed") +
     geom_line(aes(x= time, y = log.10.biomass), col = "blue") +
-    geom_text(aes(x=x.mid, y = text.y, label = lag.info), size = 6, col = "red") +
     #geom_point(aes(x= time, y = log10.biomass), col = "blue") +
     geom_point(aes(x= time, y = log.10.tangent.point), col = "darkgreen", size = 2) +
     geom_line(aes(x= time, y = log.10.predicted), col = "darkgreen") +
@@ -544,6 +554,9 @@ Plot.Lag.Fit = function(data.new) {
           axis.title.y=element_text(colour="blue"),
           axis.title.y.right=element_text(colour="black"))    
   
+  if (print.lag.info) {
+    g = g +  geom_text(aes(x=x.mid, y = text.y, label = lag.info), size = 6, col = "red")
+  }
   #g =  g + 
   #  geom_line(aes(x = time, y = diff), alpha = 0.5, col = "black")  +
   #  geom_line(aes(x = time, y = second.deriv.b), alpha = 0.5, col = "black")
