@@ -12,8 +12,8 @@ library(nlsMicrobio)
 library(minpack.lm)
 library(dplyr)
 SHINY.APP.PATH = "/Users/bognasmug/Documents/GitHub/microbial_lag_calulator/shiny_app/lag_calulator/"
-source(sprintf("%sR/lags_helper.R", SHINY.APP.PATH))
-OUTPUT_FIGS_PATH = "~/MGG Dropbox/Bogna Smug/Projects/Quiesence/2022_Lags/Figures/2022_08_31/"
+#source(sprintf("%sR/lags_helper.R", SHINY.APP.PATH))
+OUTPUT_FIGS_PATH = "~/MGG Dropbox/Bogna Smug/Projects/Quiesence/2022_Lags/Figures/2022_11_03/"
 dir.create(OUTPUT_FIGS_PATH)
 curve_names = paste0("curve_", 1:11)
 
@@ -70,8 +70,8 @@ dev.off()
 data.smooth = Smooth.Data(real.data)
 real.data.smooth.with.lag = Get.Lags.Calculated.By.All.Methods(data.smooth, biomass.increase.threshold)
 
-data.sparse = real.data %>% filter(time %in% seq(0,24,2))
-real.data.sparse.with.lag = Get.Lags.Calculated.By.All.Methods(data.sparse, biomass.increase.threshold)
+#data.sparse = real.data %>% filter(time %in% seq(0,24,2))
+#real.data.sparse.with.lag = Get.Lags.Calculated.By.All.Methods(data.sparse, biomass.increase.threshold)
 
 data.short = Cut.The.Data(real.data,12)
 real.data.short.with.lag = Get.Lags.Calculated.By.All.Methods(data.short, biomass.increase.threshold)
@@ -86,10 +86,10 @@ rbind(real.data.smooth.with.lag %>%
   real.data.with.lag %>%
     distinct(lag, curve_id, lag.calculation.method) %>%
     mutate(data.type = "original")) %>%
-  rbind(
-  real.data.sparse.with.lag %>%
-  distinct(lag, curve_id, lag.calculation.method) %>%
-  mutate(data.type = "sparse")) %>%
+  #rbind(
+  #real.data.sparse.with.lag %>%
+  #distinct(lag, curve_id, lag.calculation.method) %>%
+  #mutate(data.type = "sparse")) %>%
   rbind(
     real.data.short.with.lag%>%
       distinct(lag, curve_id, lag.calculation.method) %>%
@@ -154,7 +154,6 @@ dev.off()
 # simulate perfect data
 time.interval = 0.1
 times = seq(0,24,time.interval)
-N0 = 10^6
 lag = 2.5
 growth.rate = 0.1
 K=5*10^6
@@ -162,9 +161,13 @@ growth.rate.logistic = 0.25
 # Baranyi lag= ln(1+1/q0)/growth.rate
 Q0= 1/(exp(2.5*growth.rate) - 1)
 #Q0 = 3.5
-a = 0.016*10^7
-Vh = 300*10^(-7)
+#a = 0.016*10^7
+#Vh = 300*10^(-7)
+# those parameters give as a curve similar to the logistic one
+a = 0.03*10^7 # altered from previous one so that the curve has similar K to the one by logistic growth
+Vh = 150*10^(-7) # altered from previous one so that the curve has similar K to the one by logistic growth
 Kh = 300
+N0 = 10^6
 byranayi_and_roberts.simulated.data.raw = Simulate.Baranyi(Q0, growth.rate, K, times) 
 logistic.simulated.data = Simulate.Logistic.With.Lag(N0, growth.rate.logistic, K, lag, times)
 monod.simulated.data = Simulate.Monod.With.Lag(a = a,Vh=Vh,Kh=Kh, N0=N0,G0=13.9, lag=lag, times=times)
@@ -188,13 +191,13 @@ dev.off()
 set.seed(1)
 
 # example data with noise
-logistic.simulated.data.example.1 = Simulate.Logistic.With.Lag(N0, growth.rate, K, lag, times) %>%
+logistic.simulated.data.example.1 = Simulate.Logistic.With.Lag(N0, growth.rate.logistic, K, lag, times) %>%
   mutate(biomass = biomass + rnorm(n = length(times), mean = 0, sd = 0.05*N0)) %>%
   mutate(sd = 0.05, K = K, real.lag = lag)
-logistic.simulated.data.example.2 = Simulate.Logistic.With.Lag(N0, growth.rate, K, lag, times) %>%
+logistic.simulated.data.example.2 = Simulate.Logistic.With.Lag(N0, growth.rate.logistic, K, lag, times) %>%
   mutate(biomass = biomass + rnorm(n = length(times), mean = 0, sd = 0.2*N0))%>%
   mutate(sd = 0.2, K = K, real.lag = lag)
-logistic.simulated.data.example.3 = Simulate.Logistic.With.Lag(N0, growth.rate, K, lag, times) %>%
+logistic.simulated.data.example.3 = Simulate.Logistic.With.Lag(N0, growth.rate.logistic, K, lag, times) %>%
   mutate(biomass = biomass + rnorm(n = length(times), mean = 0, sd = 0.5*N0))%>%
   mutate(sd = 0.5, K = K, real.lag = lag)
 
@@ -215,12 +218,12 @@ dev.off()
 
 Num.obs = 100
 real.lag = 2.5
-growth.rate.logistic = 0.25
 growth.rates = c(0.1, 0.25, 0.5)
-carrying.capacities = c(0.5*K, K, 10*K)
+#carrying.capacities = c(0.5*K, K, 10*K)
 real.lags = c(0.5, 2.5, 5)
 sd_range = seq(0.0, 0.5, 0.1)
 
+################## LOGISTIC MODEL SIMULATIONS ###########################
 all.lag.data = data.frame(curve_id = character(0), 
                              lag = numeric(0), 
                              lag.calculation.method = character(0), 
@@ -228,22 +231,24 @@ all.lag.data = data.frame(curve_id = character(0),
                           growth.rate = numeric(0),
                           carrying.capacity = numeric(0),
                           real.lag = numeric(0))
+logistic.simulated.data.basic = Simulate.Logistic.With.Lag(N0, growth.rate.logistic, K, real.lag, times)
+ggplot(data = logistic.simulated.data.basic, aes(x = time, y = biomass )) + geom_point() + geom_line() +
+  ylim(c(10^6, 5*10^6))
 
 
 
 
-
-all.lag.data.1 = all.lag.data %>% filter(FALSE)
-for (this.carrying.capacity in carrying.capacities) {
-      logistic.simulated.data.basic = Simulate.Logistic.With.Lag(N0, growth.rate.logistic, this.carrying.capacity, real.lag, times)
-      lag.df = Get.Lag.Fitting.Data.For.Noisy.Simulations(logistic.simulated.data.basic,
-                                                 sd_range = sd_range,
-                                                 biomass.increase.threshold,
-                                                 Num.obs = Num.obs) 
-      all.lag.data.1 = rbind(all.lag.data.1, lag.df %>% mutate(growth.rate = growth.rate.logistic,
-                                                             carrying.capacity = this.carrying.capacity,
-                                                             real.lag = real.lag))
-}
+#all.lag.data.1 = all.lag.data %>% filter(FALSE)
+#for (this.carrying.capacity in carrying.capacities) {
+#      logistic.simulated.data.basic = Simulate.Logistic.With.Lag(N0, growth.rate.logistic, this.carrying.capacity, real.lag, times)
+#      lag.df = Get.Lag.Fitting.Data.For.Noisy.Simulations(logistic.simulated.data.basic,
+#                                                 sd_range = sd_range,
+#                                                 biomass.increase.threshold,
+#                                                 Num.obs = Num.obs) 
+#      all.lag.data.1 = rbind(all.lag.data.1, lag.df %>% mutate(growth.rate = growth.rate.logistic,
+#                                                             carrying.capacity = this.carrying.capacity,
+#                                                             real.lag = real.lag))
+#}
   
 
 
@@ -275,8 +280,8 @@ for (this.growth.rate in growth.rates) {
 
 
 all.lag.data.4 = all.lag.data %>% filter(FALSE) %>% mutate(time.interval = numeric(0))
-for (this.time.internal in c(0.1, 0.5, 2)) {
-  logistic.simulated.data.basic = Simulate.Logistic.With.Lag(N0, growth.rate.logistic, K, real.lag,seq(0,24,this.time.internal))
+for (this.time.interval in c(0.1, 0.5, 2)) {
+  logistic.simulated.data.basic = Simulate.Logistic.With.Lag(N0, growth.rate.logistic, K, real.lag,seq(0,24,this.time.interval))
   lag.df = Get.Lag.Fitting.Data.For.Noisy.Simulations(logistic.simulated.data.basic,
                                                       sd_range = sd_range,
                                                       biomass.increase.threshold,
@@ -284,117 +289,212 @@ for (this.time.internal in c(0.1, 0.5, 2)) {
   all.lag.data.4 = rbind(all.lag.data.4, lag.df %>% mutate(growth.rate = growth.rate.logistic,
                                                            carrying.capacity = K,
                                                            real.lag = real.lag,
-                                                           time.internal = this.time.internal))
+                                                           time.interval = this.time.interval))
 }
     
-all.lag.data.1 = all.lag.data.1 %>% mutate(obs.minus.real.lag = lag - real.lag)
+#all.lag.data.1 = all.lag.data.1 %>% mutate(obs.minus.real.lag = lag - real.lag)
 all.lag.data.2 = all.lag.data.2 %>% mutate(obs.minus.real.lag = lag - real.lag)
 all.lag.data.3 = all.lag.data.3 %>% mutate(obs.minus.real.lag = lag - real.lag)
 all.lag.data.4 = all.lag.data.4 %>% mutate(obs.minus.real.lag = lag - real.lag)
 
-saveRDS(all.lag.data.1, paste0(OUTPUT_FIGS_PATH,"all.lag.data.varying.carrying.capacities.rds"))    
-saveRDS(all.lag.data.2, paste0(OUTPUT_FIGS_PATH,"all.lag.data.varying.lags.rds"))    
-saveRDS(all.lag.data.3, paste0(OUTPUT_FIGS_PATH,"all.lag.data.varying.growth.rate.rds"))   
-saveRDS(all.lag.data.4, paste0(OUTPUT_FIGS_PATH,"all.lag.data.varying.time.interval.rds"))   
+#saveRDS(all.lag.data.1, paste0(OUTPUT_FIGS_PATH,"all.lag.data.logistic.varying.carrying.capacities.rds"))    
+saveRDS(all.lag.data.2, paste0(OUTPUT_FIGS_PATH,"all.lag.data.logistic.varying.lags.rds"))    
+saveRDS(all.lag.data.3, paste0(OUTPUT_FIGS_PATH,"all.lag.data.logistic.varying.growth.rate.rds"))   
+saveRDS(all.lag.data.4, paste0(OUTPUT_FIGS_PATH,"all.lag.data.logistic.varying.time.interval.rds"))   
 
 
-#ggplot(all.lag.data) + geom_boxplot(aes(col=lag.calculation.method, x=lag.calculation.method, y = obs.minus.real.lag)) + 
-#  facet_grid(.~sd) +
-#  Get.Theme(10) 
+
+all.lag.data.2 = readRDS(paste0(OUTPUT_FIGS_PATH,"all.lag.data.logistic.varying.lags.rds"))    
+all.lag.data.3 = readRDS(paste0(OUTPUT_FIGS_PATH,"all.lag.data.logistic.varying.growth.rate.rds"))   
+all.lag.data.4 = readRDS(paste0(OUTPUT_FIGS_PATH,"all.lag.data.logistic.varying.time.interval.rds"))   
 
 
-all.lag.data.1 = readRDS(paste0(OUTPUT_FIGS_PATH,"all.lag.data.varying.carrying.capacities.rds"))    
-all.lag.data.2 = readRDS(paste0(OUTPUT_FIGS_PATH,"all.lag.data.varying.lags.rds"))    
-all.lag.data.3 = readRDS(paste0(OUTPUT_FIGS_PATH,"all.lag.data.varying.growth.rate.rds"))   
-all.lag.data.4 = readRDS(paste0(OUTPUT_FIGS_PATH,"all.lag.data.varying.time.interval.rds"))   
-
-
-jpeg(sprintf("%sFig4_noise_vs_grwoth_rate.png", OUTPUT_FIGS_PATH), width = 60, height=30, units = "cm", res = 600)
+jpeg(sprintf("%sFig4_logistic_noise_vs_grwoth_rate.png", OUTPUT_FIGS_PATH), width = 60, height=30, units = "cm", res = 600)
 ggplot(all.lag.data.3 %>% 
-         filter(carrying.capacity == K & real.lag == 2.5) %>%
-         rowwise() %>%
-         mutate(growth.rate = paste0("Growth rate = ", growth.rate)), 
-       aes(x=sd, y=obs.minus.real.lag, colour=lag.calculation.method)) +
-       geom_point(size = 0.5) +
-       geom_hline(aes(yintercept = 0), col = "black") +
-       geom_quantile(quantiles = c(0.25, 0.5, 0.75), size = 2, aes(alpha = ..quantile..)) +
-       facet_grid(growth.rate~lag.calculation.method) +
-  ylab("Lag [h]: observed - expected") +
-       #scale_alpha_manual(values = c(0.75, 0.5, 0.25), breaks = c(0.3,0.9, 0.7)) +
-  my_theme + theme(legend.position = "none") #+
-  #ylim(c(-10,10))
-dev.off()
-
-jpeg(sprintf("%sFig4_noise_vs_K.png", OUTPUT_FIGS_PATH), width = 60, height=30, units = "cm", res = 600)
-ggplot(all.lag.data.1 %>% 
-         filter(growth.rate == growth.rate.logistic & real.lag == 2.5)  %>%
-         mutate(carrying.capacity = plyr::mapvalues(carrying.capacity, 
-                                                    from = carrying.capacities, to = c("low", "medium", "high"))) %>%
-         rowwise() %>%
-         mutate(carrying.capacity = paste0("Carrying capacity = ", carrying.capacity)),  
+         mutate(growth.rate = paste0("Growth rate = ", growth.rate),
+                sd = as.factor(sd)), 
        aes(x=sd, y=obs.minus.real.lag, colour=lag.calculation.method)) +
   geom_point(size = 0.5) +
   geom_hline(aes(yintercept = 0), col = "black") +
-  geom_quantile(quantiles = c(0.25, 0.5, 0.75), size = 2, aes(alpha = ..quantile..)) +
-  facet_grid(carrying.capacity~lag.calculation.method) +
-  #scale_alpha_manual(values = c(0.75, 0.5, 0.25), breaks = c(0.3,0.9, 0.7)) +
+  geom_jitter(alpha = 0.5) +
+  geom_boxplot() +
+  facet_grid(growth.rate~lag.calculation.method) +
   ylab("Lag [h]: observed - expected") +
-#scale_alpha_manual(values = c(0.75, 0.5, 0.25), breaks = c(0.3,0.9, 0.7)) +
-my_theme + theme(legend.position = "none") #+
- # ylim(c(-10,10))
+  my_theme + theme(legend.position = "none") + 
+  ylim(c(-5,15))
 dev.off()
 
 
-jpeg(sprintf("%sFig4_noise_vs_reallag.png", OUTPUT_FIGS_PATH), width = 60, height=30, units = "cm", res = 600)
+jpeg(sprintf("%sFig4_logistic_noise_vs_reallag.png", OUTPUT_FIGS_PATH), width = 60, height=30, units = "cm", res = 600)
 ggplot(all.lag.data.2 %>% 
-         filter(growth.rate == growth.rate.logistic & carrying.capacity == K) %>%
-         rowwise() %>%
-         mutate(real.lag = paste0("Exoected lag = ", real.lag)),  
+         mutate(real.lag = paste0("Exoected lag = ", real.lag),
+                sd = as.factor(sd)),  
        aes(x=sd, y=obs.minus.real.lag, colour=lag.calculation.method)) +
   geom_point(size = 0.5) +
   geom_hline(aes(yintercept = 0), col = "black") +
-  geom_quantile(quantiles = c(0.25, 0.5, 0.75), size = 2, aes(alpha = ..quantile..)) +
+  geom_jitter(alpha = 0.5) +
+  geom_boxplot() +
   facet_grid(real.lag~lag.calculation.method) +
-  #scale_alpha_manual(values = c(0.75, 0.5, 0.25), breaks = c(0.3,0.9, 0.7)) +
   ylab("Lag [h]: observed - expected") +
-  #scale_alpha_manual(values = c(0.75, 0.5, 0.25), breaks = c(0.3,0.9, 0.7)) +
-  my_theme + theme(legend.position = "none") #+
-  #ylim(c(-10,10))
+  my_theme + theme(legend.position = "none") + 
+  ylim(c(-5,15))
 dev.off()
 
-jpeg(sprintf("%sFig4_noise_vs_time_interval.png", OUTPUT_FIGS_PATH), width = 60, height=30, units = "cm", res = 600)
-ggplot(all.lag.data.4 %>%
-         filter(growth.rate == growth.rate.logistic & carrying.capacity == K & real.lag == 2.5) %>%
-         rowwise() %>%
-         mutate(time.internal = paste0("Time interval = ", time.internal, " [h]")),  
-       aes(x=sd, y=obs.minus.real.lag, colour=lag.calculation.method)) +
+jpeg(sprintf("%sFig4_logistic_noise_vs_time_interval.png", OUTPUT_FIGS_PATH), width = 60, height=30, units = "cm", res = 600)
+ggplot(all.lag.data.4 %>% 
+         mutate(time.interval = paste0("Time interval = ", time.interval, " [h]"),
+                sd = as.factor(sd)),
+       aes(x=sd, y=obs.minus.real.lag, colour=lag.calculation.method, alpha = sd)) +
   geom_point(size = 0.5) +
   geom_hline(aes(yintercept = 0), col = "black") +
-  geom_quantile(quantiles = c(0.25, 0.5, 0.75), size = 2, aes(alpha = ..quantile..)) +
-  facet_grid(time.internal~lag.calculation.method) +
-  #scale_alpha_manual(values = c(0.75, 0.5, 0.25), breaks = c(0.3,0.9, 0.7)) +
+  geom_jitter(alpha = 0.5) +
+  geom_boxplot() +
+  facet_grid(time.interval~lag.calculation.method) +
   ylab("Lag [h]: observed - expected") +
-  #scale_alpha_manual(values = c(0.75, 0.5, 0.25), breaks = c(0.3,0.9, 0.7)) +
-  my_theme + theme(legend.position = "none") #+
-  #ylim(c(-10,10))
+  my_theme + theme(legend.position = "none") + 
+  ylim(c(-5,15))
 dev.off()
 
-# data sparsity
+
+
+######################## SIMULATE MODNOS DATA ##############################
+# parameters are chosen so that the curve resambles the logistic one
+Num.obs = 100
+real.lag = 2.5
+a = 0.03*10^7 #so that the curve has similar K to the one by logistic growth
+Vh = 150*10^(-7) #so that the curve has similar K to the one by logistic growth
+Kh = 300 
+N0 = 10^6
+
+Vhs = c(0.4*Vh, Vh, 2*Vh)
+real.lags = c(0.5, 2.5, 5)
+sd_range = seq(0.0, 0.5, 0.1)
+time.interval = 0.1
+times = seq(0,24,time.interval)
+
+
+all.lag.data = data.frame(curve_id = character(0), 
+                          lag = numeric(0), 
+                          lag.calculation.method = character(0), 
+                          sd = numeric(0),
+                          Vh = numeric(0),
+                          a = numeric(0),
+                          real.lag = numeric(0),
+                          time.interval = numeric(0))
+
+monod.simulated.data.basic = Simulate.Monod.With.Lag(a = a,Vh=Vh,Kh=Kh, N0=N0,G0=13.9, lag=real.lag, times=times)
+ggplot(data = monod.simulated.data.basic, aes(x = time, y = biomass )) + geom_point() + geom_line() +
+ylim(c(10^6, 5*10^6))
+# on data that is not noisy we get a good lag estimate by logistic method and all others.
+data.monod.with.lag = Get.Lags.Calculated.By.All.Methods(monod.simulated.data.basic, biomass.increase.threshold)
+Plot.Lag.Fit(data.monod.with.lag) + my_theme
 
 
 
-#ggplot(all.lag.data) + 
-#  geom_boxplot(aes(x=lag.calculation.method, col = lag.calculation.method, y = obs.minus.real.lag)) + 
-#  my_theme +
-#  facet_grid(.~sd) +        geom_hline(aes(yintercept = 0), col = "black")  + 
-#  ylim(c(-10,10))
+all.lag.data.1.monod = all.lag.data %>% filter(FALSE)
+for (this.Vh in Vhs) {
+  monod.simulated.data.basic = Simulate.Monod.With.Lag(a = a,Vh=this.Vh,Kh=Kh, N0=N0,G0=13.9, lag=real.lag, times=times)
+  
+  lag.df = Get.Lag.Fitting.Data.For.Noisy.Simulations(monod.simulated.data.basic,
+                                                      sd_range = sd_range,
+                                                      biomass.increase.threshold,
+                                                      Num.obs = Num.obs) 
+  all.lag.data.1.monod = rbind(all.lag.data.1.monod, lag.df %>% mutate(Vh = this.Vh,
+                                                           a = a,
+                                                           real.lag = real.lag,
+                                                           time.interval = time.interval))
+}
 
-#params = Fit.To.Logistic.With.Lag(N0, logistic.simulated.data)
-#mu.fitted = params$optim$bestmem[1] %>% as.numeric()
-#k.fitted = params$optim$bestmem[2] %>% as.numeric()
-#lag.fitted = params$optim$bestmem[3] %>% as.numeric()
-
-#logistic model solution derived for example here
-#https://math.libretexts.org/Bookshelves/Calculus/Book%3A_Calculus_(OpenStax)/08%3A_Introduction_to_Differential_Equations/8.4%3A_The_Logistic_Equation
 
 
+all.lag.data.2.monod = all.lag.data %>% filter(FALSE)
+for (this.real.lag in real.lags) {
+  monod.simulated.data.basic = Simulate.Monod.With.Lag(a = a,Vh=Vh,Kh=Kh, N0=N0,G0=13.9, lag=this.real.lag, times=times)
+  lag.df = Get.Lag.Fitting.Data.For.Noisy.Simulations(monod.simulated.data.basic,
+                                                      sd_range = sd_range,
+                                                      biomass.increase.threshold,
+                                                      Num.obs = Num.obs) 
+  all.lag.data.2.monod = rbind(all.lag.data.2.monod, lag.df %>% mutate(Vh = Vh,
+                                                           a = a,
+                                                           real.lag = this.real.lag,
+                                                           time.interval = time.interval))
+}
+
+
+
+all.lag.data.3.monod = all.lag.data %>% filter(FALSE)
+for (this.time.interval in c(0.1, 0.5, 2)) {
+  monod.simulated.data.basic = Simulate.Monod.With.Lag(a = a,Vh=Vh,Kh=Kh, N0=N0,G0=13.9, lag=real.lag, times=seq(0,24,this.time.interval))
+  lag.df = Get.Lag.Fitting.Data.For.Noisy.Simulations(monod.simulated.data.basic,
+                                                      sd_range = sd_range,
+                                                      biomass.increase.threshold,
+                                                      Num.obs = Num.obs) 
+  all.lag.data.3.monod = rbind(all.lag.data.3.monod, lag.df %>% mutate(Vh = Vh,
+                                                           a = a,
+                                                           real.lag = real.lag,
+                                                           time.interval = this.time.interval))
+}
+
+
+
+
+all.lag.data.1.monod = all.lag.data.1.monod %>% mutate(obs.minus.real.lag = lag - real.lag)
+all.lag.data.2.monod = all.lag.data.2.monod %>% mutate(obs.minus.real.lag = lag - real.lag)
+all.lag.data.3.monod = all.lag.data.3.monod %>% mutate(obs.minus.real.lag = lag - real.lag)
+
+saveRDS(all.lag.data.1.monod, paste0(OUTPUT_FIGS_PATH,"all.lag.data.monod.varying.Vh.rds"))    
+saveRDS(all.lag.data.2.monod, paste0(OUTPUT_FIGS_PATH,"all.lag.data.varying.lags.rds"))    
+saveRDS(all.lag.data.3.monod, paste0(OUTPUT_FIGS_PATH,"all.lag.data.varying.time.interval.rds"))   
+
+
+jpeg(sprintf("%sFig4_Monod_noise_vs_Vh.png", OUTPUT_FIGS_PATH), width = 60, height=30, units = "cm", res = 600)
+ggplot(all.lag.data.1.monod %>% 
+         mutate(growth.rate = paste0("Vh = ", Vh), 
+                sd = as.factor(sd)),
+       aes(x=sd, y=obs.minus.real.lag, colour=lag.calculation.method, alpha = sd)) +
+  geom_point(size = 0.5) +
+  geom_hline(aes(yintercept = 0), col = "black") +
+  geom_jitter(alpha = 0.5) +
+  geom_boxplot() +
+  facet_grid(growth.rate~lag.calculation.method) +
+  ylab("Lag [h]: observed - expected") +
+  my_theme + theme(legend.position = "none")  + 
+  ylim(c(-5,15))
+dev.off()
+
+
+jpeg(sprintf("%sFig4_Monod_noise_vs_reallag.png", OUTPUT_FIGS_PATH), width = 60, height=30, units = "cm", res = 600)
+ggplot(all.lag.data.2.monod %>% 
+         mutate(real.lag = paste0("Exoected lag = ", real.lag),
+                sd = as.factor(sd)),
+       aes(x=sd, y=obs.minus.real.lag, colour=lag.calculation.method, alpha = sd)) +
+  geom_point(size = 0.5) +
+  geom_hline(aes(yintercept = 0), col = "black") +
+  geom_jitter(alpha = 0.5) +
+  geom_boxplot() +
+  facet_grid(real.lag~lag.calculation.method) +
+  ylab("Lag [h]: observed - expected") +
+  my_theme + theme(legend.position = "none")  + 
+  ylim(c(-5,15))
+dev.off()
+
+
+jpeg(sprintf("%sFig4_Monod_noise_vs_timeinterval.png", OUTPUT_FIGS_PATH), width = 60, height=30, units = "cm", res = 600)
+ggplot(all.lag.data.3.monod %>% 
+         mutate(time.interval = paste0("Time interval = ", time.interval, " [h]"),
+                sd = as.factor(sd)),
+       aes(x=sd, y=obs.minus.real.lag, colour=lag.calculation.method, alpha = sd)) +
+  geom_point(size = 0.5) +
+  geom_hline(aes(yintercept = 0), col = "black") +
+  geom_jitter(alpha = 0.5) +
+  geom_boxplot() +
+  facet_grid(time.interval~lag.calculation.method) +
+  ylab("Lag [h]: observed - expected") +
+  my_theme + theme(legend.position = "none") + 
+  ylim(c(-5,15))
+dev.off()
+
+
+dat = monod.simulated.data.basic %>% mutate(type = "monod") %>% rbind(logistic.simulated.data.basic %>% mutate(type = "logistic"))
+ggplot(data = dat, aes(x = time, y = biomass, col = type)) + geom_point() + geom_line() +
+      ylim(c(10^6, 5*10^6))
