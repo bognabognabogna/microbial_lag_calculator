@@ -416,7 +416,7 @@ Calculate.Lagistic.Fit.Lag = function(data, N0, init.growth.rate = NULL, init.K 
                                                           max.iter = max.iter)
     data_this_curve = data_this_curve %>% 
       mutate(lag = round(this.fitting.object$lagN,1))
-    data_this_curve$predicted = if (!is.na(this.fitting.object$nlsres)) {predict(this.fitting.object$nlsres, data_this_curve) } else {data_this_curve$predicted = NA}
+    data_this_curve$predicted = if (!any(is.na(this.fitting.object$nlsres))) {predict(this.fitting.object$nlsres, data_this_curve) } else {data_this_curve$predicted = NA}
     data.new = rbind(data.new, data_this_curve)
     
     fiting.list[[i]] = this.fitting.object$nlsres
@@ -475,7 +475,7 @@ Calculate.Baranyi.Fit.Lag = function(data, N0, init.lag = NULL, init.growth.rate
     fitting.object.this.curve = Calculate.Lag.Fitting.To.Baranyi.With.Lag(data_this_curve_for_model, init.LOG10N0, init.lag, init.mumax, init.LOG10Nmax)
     data_this_curve = data_this_curve %>%
       mutate(lag = round(fitting.object.this.curve$lagN,1))
-    data_this_curve$predicted = if (!is.na(fitting.object.this.curve$nlsres)) {10^(predict(fitting.object.this.curve$nlsres, data_this_curve)) } else {data_this_curve$predicted = NA}
+    data_this_curve$predicted = if (!any(is.na(fitting.object.this.curve$nlsres))) {10^(predict(fitting.object.this.curve$nlsres, data_this_curve)) } else {data_this_curve$predicted = NA}
     data.new = rbind(data.new, data_this_curve)
   }
   return(data.new)
