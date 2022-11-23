@@ -359,6 +359,39 @@ Calculate.Lag.Fitting.To.Baranyi.With.Lag = function(growthcurve, LOG10N0 = NULL
 }
 
 
+Get.Initial.Parameters.Logistic = function(data_this_curve, this.N0, init.K, init.lag, init.growth.rate) {
+  if (is.null(init.K)) {
+    max.this.data = max(data_this_curve$biomass, na.rm = TRUE)
+    init.K = max.this.data %>% as.numeric()
+  }
+  if (is.null(init.lag)) {
+    init.lag = Calculate.Lag(data_this_curve, method = "exponential",pars = Get.default.parameters()) %>% pull(lag) %>% unique() %>% as.numeric()
+  }
+  
+  if (is.null(init.growth.rate)) {
+    data_this_curve_exponential = data_this_curve %>%
+      mutate(
+        max.biomass = max(data_this_curve$biomass),
+        min.threshold = this.N0 + 0.2*(max.biomass - this.N0),
+        max.threshold = this.N0 + 0.8*(max.biomass - this.N0)) %>%
+      # take only the points that are in between min and max
+      filter(biomass <= max.threshold & biomass >= min.threshold)
+    data_this_curve_exponential$logdata = log(data_this_curve_exponential$biomass/this.N0)
+    if (nrow(data_this_curve_exponential %>% filter(!is.na(time) & !is.na(logdata)) > 0)) {
+      mod = lm(logdata ~ time, data = data_this_curve_exponential)
+      # this growth rate is assumig an exponential model so it will be generally underestimated
+      init.growth.rate = mod$coefficients[2] %>% unname()
+      # we have real r = r(1-N/K) so let us take
+      Nmid = median(data_this_curve_exponential$biomass)
+      init.growth.rate = init.growth.rate/(1-Nmid/init.K)
+    } else {
+      init.growth.rate = 0.1
+    }
+    #data_this_curve_exponential$predicted = predict(mod, data_this_curve_exponential)
+  }
+  return(list(init.K = init.K, init.lag = init.lag, init.growth.rate = init.growth.rate))
+}
+
 Calculate.Lagistic.Fit.Lag = function(data, N0, init.growth.rate = NULL, init.K = NULL, init.lag = NULL, algorithm, max.iter, return.all.params = FALSE,
                                       low.bound.for.gr = 0.2, upper.bound.for.gr = 0.8) {
   if (!("curve_id" %in% names(data))) {
@@ -374,44 +407,12 @@ Calculate.Lagistic.Fit.Lag = function(data, N0, init.growth.rate = NULL, init.K 
     i = i+1
     data_this_curve = data %>% filter(curve_id == this_curve_id) %>% select(time, biomass, curve_id)
     this.N0 = N0 %>% filter(curve_id == this_curve_id) %>% pull(N0)
-    
-    # added this partg to improve the initial guess
-    if (is.null(init.K)) {
-      max.this.data = max(data$biomass, na.rm = TRUE)
-      init.K = max.this.data %>% as.numeric()
-    }
-    if (is.null(init.lag)) {
-      init.lag = Calculate.Lag(data_this_curve, method = "exponential",pars = Get.default.parameters()) %>% pull(lag) %>% unique() %>% as.numeric()
-    }
-    
-    if (is.null(init.growth.rate)) {
-      data_this_curve_exponential = data_this_curve %>%
-        mutate(
-          max.biomass = max(data_this_curve$biomass),
-          min.threshold = this.N0 + 0.2*(max.biomass - this.N0),
-          max.threshold = this.N0 + 0.8*(max.biomass - this.N0)) %>%
-        # take only the points that are in between min and max
-        filter(biomass <= max.threshold & biomass >= min.threshold)
-        data_this_curve_exponential$logdata = log(data_this_curve_exponential$biomass/this.N0)
-      if (nrow(data_this_curve_exponential %>% filter(!is.na(time) & !is.na(logdata)) > 0)) {
-      mod = lm(logdata ~ time, data = data_this_curve_exponential)
-      # this growth rate is assumig an exponential model so it will be generally underestimated
-      init.growth.rate = mod$coefficients[2] %>% unname()
-      # we have real r = r(1-N/K) so let us take
-      Nmid = median(data_this_curve_exponential$biomass)
-      init.growth.rate = init.growth.rate/(1-Nmid/init.K)
-      } else {
-        init.growth.rate = 0.1
-      }
-      #data_this_curve_exponential$predicted = predict(mod, data_this_curve_exponential)
-    }
-    
-
+    initial.parameters = Get.Initial.Parameters.Logistic(data_this_curve, this.N0, init.K, init.lag, init.growth.rate)
     this.fitting.object = Calculate.Lag.Fitting.To.Logistic.With.Lag(growthcurve = data_this_curve, 
                                                           N0=this.N0, 
-                                                          init.growth.rate =init.growth.rate, 
-                                                          init.K = init.K, 
-                                                          init.lag = init.lag, 
+                                                          init.growth.rate =initial.parameters$init.growth.rate, 
+                                                          init.K = initial.parameters$init.K, 
+                                                          init.lag = initial.parameters$init.lag, 
                                                           algorithm =algorithm, 
                                                           max.iter = max.iter)
     data_this_curve = data_this_curve %>% 
@@ -429,7 +430,39 @@ Calculate.Lagistic.Fit.Lag = function(data, N0, init.growth.rate = NULL, init.K 
   return(list(data.new = data.new, modfit = fiting.list))  
   }
 }
+ 
+
+Get.Initial.Parameters.Baranyi = function(data_this_curve, this.N0, init.lag, init.growth.rate) {
+  if (is.null(init.lag)) {
+    init.lag = Calculate.Lag(data_this_curve, method = "exponential",pars = Get.default.parameters()) %>% pull(lag) %>% unique() %>% as.numeric()
+  }
   
+  if (is.null(init.growth.rate)) {
+    data_this_curve_exponential = data_this_curve %>%
+      mutate(
+        max.biomass = max(biomass),
+        min.threshold = this.N0 + 0.2*(max.biomass - this.N0),
+        max.threshold = this.N0 + 0.8*(max.biomass - this.N0)) %>%
+      # take only the points that are in between min and max
+      filter(biomass <= max.threshold & biomass >= min.threshold)
+    data_this_curve_exponential$logdata = log(data_this_curve_exponential$biomass/this.N0)
+    if (nrow(data_this_curve_exponential %>% filter(!is.na(time) & !is.na(logdata))  > 0)) {
+      mod = lm(logdata ~ time, data = data_this_curve_exponential)
+      # this growth rate is assumig an exponential model so it will be generally underestimated
+      init.growth.rate = mod$coefficients[2] %>% unname()
+      # we have real r = r(1-N/K) so let us take
+      Nmid = median(data_this_curve_exponential$biomass)
+      init.mumax = init.growth.rate
+    } else {
+      init.mumax = 0.1
+    }
+  } else {
+    init.mumax = init.growth.rate
+  }
+  return(list(init.mumax = init.mumax, init.lag = init.lag))
+}
+
+
 Calculate.Baranyi.Fit.Lag = function(data, N0, init.lag = NULL, init.growth.rate = NULL) {
   data.new = data %>% filter(FALSE) %>% mutate(lag = numeric(0), predicted = numeric(0))
   for (this_curve_id in unique(data$curve_id)) {
@@ -441,38 +474,13 @@ Calculate.Baranyi.Fit.Lag = function(data, N0, init.lag = NULL, init.growth.rate
       select(LOG10N, t)
     init.LOG10N0 = log10(N0 %>% filter(curve_id == this_curve_id) %>% pull(N0))
     init.LOG10Nmax = max(data_this_curve_for_model$LOG10N)
+    initial.parameters.baranyi = Get.Initial.Parameters.Baranyi(data_this_curve, this.N0, init.lag, init.growth.rate)
     
-    
-    
-    if (is.null(init.lag)) {
-      init.lag = Calculate.Lag(data_this_curve, method = "exponential",pars = Get.default.parameters()) %>% pull(lag) %>% unique() %>% as.numeric()
-    }
-    
-    if (is.null(init.growth.rate)) {
-      data_this_curve_exponential = data_this_curve %>%
-        mutate(
-          max.biomass = max(biomass),
-          min.threshold = this.N0 + 0.2*(max.biomass - this.N0),
-          max.threshold = this.N0 + 0.8*(max.biomass - this.N0)) %>%
-        # take only the points that are in between min and max
-        filter(biomass <= max.threshold & biomass >= min.threshold)
-        data_this_curve_exponential$logdata = log(data_this_curve_exponential$biomass/this.N0)
-      if (nrow(data_this_curve_exponential %>% filter(!is.na(time) & !is.na(logdata))  > 0)) {
-        mod = lm(logdata ~ time, data = data_this_curve_exponential)
-        # this growth rate is assumig an exponential model so it will be generally underestimated
-        init.growth.rate = mod$coefficients[2] %>% unname()
-        # we have real r = r(1-N/K) so let us take
-        Nmid = median(data_this_curve_exponential$biomass)
-        init.mumax = init.growth.rate
-      } else {
-        init.mumax = 0.1
-      }
-    } else {
-      init.mumax = init.growth.rate
-    }
-    
-
-    fitting.object.this.curve = Calculate.Lag.Fitting.To.Baranyi.With.Lag(data_this_curve_for_model, init.LOG10N0, init.lag, init.mumax, init.LOG10Nmax)
+    fitting.object.this.curve = Calculate.Lag.Fitting.To.Baranyi.With.Lag(data_this_curve_for_model, 
+                                                                          init.LOG10N0, 
+                                                                          initial.parameters.baranyi$init.lag, 
+                                                                          initial.parameters.baranyi$init.mumax, 
+                                                                          init.LOG10Nmax)
     data_this_curve = data_this_curve %>%
       mutate(lag = round(fitting.object.this.curve$lagN,1))
     data_this_curve$predicted = if (!any(is.na(fitting.object.this.curve$nlsres))) {10^(predict(fitting.object.this.curve$nlsres, data_this_curve)) } else {data_this_curve$predicted = NA}

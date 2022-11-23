@@ -12,8 +12,8 @@ library(nlsMicrobio)
 library(minpack.lm)
 library(dplyr)
 SHINY.APP.PATH = "/Users/bognasmug/Documents/GitHub/microbial_lag_calulator/shiny_app/lag_calulator/"
-#source(sprintf("%sR/lags_helper.R", SHINY.APP.PATH))
-OUTPUT_FIGS_PATH = "~/MGG Dropbox/Bogna Smug/Projects/Quiesence/2022_Lags/Figures/2022_11_03/"
+source(sprintf("%sR/lags_helper.R", SHINY.APP.PATH))
+OUTPUT_FIGS_PATH = "/Users/bognasmug/Documents/GitHub/microbial_lag_calulator/Figures/"
 dir.create(OUTPUT_FIGS_PATH)
 curve_names = paste0("curve_", 1:11)
 
@@ -443,8 +443,8 @@ all.lag.data.2.monod = all.lag.data.2.monod %>% mutate(obs.minus.real.lag = lag 
 all.lag.data.3.monod = all.lag.data.3.monod %>% mutate(obs.minus.real.lag = lag - real.lag)
 
 saveRDS(all.lag.data.1.monod, paste0(OUTPUT_FIGS_PATH,"all.lag.data.monod.varying.Vh.rds"))    
-saveRDS(all.lag.data.2.monod, paste0(OUTPUT_FIGS_PATH,"all.lag.data.varying.lags.rds"))    
-saveRDS(all.lag.data.3.monod, paste0(OUTPUT_FIGS_PATH,"all.lag.data.varying.time.interval.rds"))   
+saveRDS(all.lag.data.2.monod, paste0(OUTPUT_FIGS_PATH,"all.lag.data.monod.varying.lags.rds"))    
+saveRDS(all.lag.data.3.monod, paste0(OUTPUT_FIGS_PATH,"all.lag.data.monod.varying.time.interval.rds"))   
 
 
 jpeg(sprintf("%sFig4_Monod_noise_vs_Vh.png", OUTPUT_FIGS_PATH), width = 60, height=30, units = "cm", res = 600)
