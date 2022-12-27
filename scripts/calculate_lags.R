@@ -13,7 +13,8 @@ library(minpack.lm)
 library(dplyr)
 SHINY.APP.PATH = "/Users/bognasmug/Documents/GitHub/microbial_lag_calulator/shiny_app/lag_calulator/"
 source(sprintf("%sR/lags_helper.R", SHINY.APP.PATH))
-OUTPUT_FIGS_PATH = "/Users/bognasmug/Documents/GitHub/microbial_lag_calulator/Figures/"
+OUTPUT_FIGS_PATH = "/Users/bognasmug/MGG Dropbox/Bogna Smug/Projects/Quiesence/2022_Lags/Figures/2022_12_18/"
+#"/Users/bognasmug/Documents/GitHub/microbial_lag_calulator/Figures/"
 dir.create(OUTPUT_FIGS_PATH)
 curve_names = paste0("curve_", 1:11)
 
@@ -230,7 +231,18 @@ all.lag.data = data.frame(curve_id = character(0),
                              sd = numeric(0),
                           growth.rate = numeric(0),
                           carrying.capacity = numeric(0),
-                          real.lag = numeric(0))
+                          real.lag = numeric(0),
+                          time.interval = numeric(0))
+
+logistic.curves = data.frame(time = numeric(0),
+                             biomass = numeric(0),
+                             curve_id = character(0), 
+                             sd = numeric(0),
+                             growth.rate = numeric(0),
+                             carrying.capacity = numeric(0),
+                             real.lag = numeric(0),
+                             time.interval = numeric(0))
+
 logistic.simulated.data.basic = Simulate.Logistic.With.Lag(N0, growth.rate.logistic, K, real.lag, times)
 ggplot(data = logistic.simulated.data.basic, aes(x = time, y = biomass )) + geom_point() + geom_line() +
   ylim(c(10^6, 5*10^6))
@@ -253,40 +265,67 @@ ggplot(data = logistic.simulated.data.basic, aes(x = time, y = biomass )) + geom
 
 
 all.lag.data.2 = all.lag.data %>% filter(FALSE)
+logistic.curves.2 = logistic.curves %>% filter(FALSE)
 for (this.real.lag in real.lags) {
   logistic.simulated.data.basic = Simulate.Logistic.With.Lag(N0, growth.rate.logistic, K, this.real.lag, times)
-  lag.df = Get.Lag.Fitting.Data.For.Noisy.Simulations(logistic.simulated.data.basic,
+  lag.df.obj = Get.Lag.Fitting.Data.For.Noisy.Simulations(logistic.simulated.data.basic,
                                                       sd_range = sd_range,
                                                       biomass.increase.threshold,
                                                       Num.obs = Num.obs) 
-  all.lag.data.2 = rbind(all.lag.data.2, lag.df %>% mutate(growth.rate = growth.rate.logistic,
-                                                       carrying.capacity = K,
-                                                       real.lag = this.real.lag))
+ 
+  logistic.curves.2 = rbind(logistic.curves.2, 
+                          lag.df.obj$curves %>% mutate(growth.rate = growth.rate.logistic,
+                                                       carrying.capacity=K,
+                                    real.lag = this.real.lag,
+                                    time.interval = time.interval))
+  all.lag.data.2 = rbind(all.lag.data.2, 
+                         lag.df.obj$lag.df %>% mutate(growth.rate = growth.rate.logistic,
+                                           carrying.capacity = K,
+                                           real.lag = this.real.lag,
+                                           time.interval = time.interval))
 }
 
 
 
 all.lag.data.3 = all.lag.data %>% filter(FALSE)
+logistic.curves.3 = logistic.curves %>% filter(FALSE)
 for (this.growth.rate in growth.rates) {
   logistic.simulated.data.basic = Simulate.Logistic.With.Lag(N0, this.growth.rate, K, real.lag, times)
-  lag.df = Get.Lag.Fitting.Data.For.Noisy.Simulations(logistic.simulated.data.basic,
+  lag.df.obj = Get.Lag.Fitting.Data.For.Noisy.Simulations(logistic.simulated.data.basic,
                                                       sd_range = sd_range,
                                                       biomass.increase.threshold,
                                                       Num.obs = Num.obs) 
-  all.lag.data.3 = rbind(all.lag.data.3, lag.df %>% mutate(growth.rate = this.growth.rate,
+  logistic.curves.3 = rbind(logistic.curves.3, 
+                            lag.df.obj$curves %>% mutate(growth.rate = this.growth.rate,
+                                                         carrying.capacity=K,
+                                                         real.lag = real.lag,
+                                                         time.interval = time.interval))
+  all.lag.data.3 = rbind(all.lag.data.3, 
+                         lag.df.obj$lag.df %>% mutate(growth.rate = this.growth.rate,
                                                        carrying.capacity = K,
-                                                       real.lag = real.lag))
+                                                       real.lag = real.lag,
+                                                       time.interval = time.interval))
 }
 
 
 all.lag.data.4 = all.lag.data %>% filter(FALSE) %>% mutate(time.interval = numeric(0))
+logistic.curves.4 = logistic.curves %>% filter(FALSE)
 for (this.time.interval in c(0.1, 0.5, 2)) {
-  logistic.simulated.data.basic = Simulate.Logistic.With.Lag(N0, growth.rate.logistic, K, real.lag,seq(0,24,this.time.interval))
-  lag.df = Get.Lag.Fitting.Data.For.Noisy.Simulations(logistic.simulated.data.basic,
+  logistic.simulated.data.basic = Simulate.Logistic.With.Lag(N0, 
+                                                             growth.rate.logistic,
+                                                             K, 
+                                                             real.lag,
+                                                             seq(0,24,this.time.interval))
+  lag.df.obj = Get.Lag.Fitting.Data.For.Noisy.Simulations(logistic.simulated.data.basic,
                                                       sd_range = sd_range,
                                                       biomass.increase.threshold,
                                                       Num.obs = Num.obs) 
-  all.lag.data.4 = rbind(all.lag.data.4, lag.df %>% mutate(growth.rate = growth.rate.logistic,
+  logistic.curves.4 = rbind(logistic.curves.4, 
+                            lag.df.obj$curves %>% mutate(growth.rate = growth.rate.logistic,
+                                                         carrying.capacity=K,
+                                                         real.lag = real.lag,
+                                                         time.interval = this.time.interval))
+  all.lag.data.4 = rbind(all.lag.data.4, lag.df.obj$lag.df %>% mutate(growth.rate = growth.rate.logistic,
                                                            carrying.capacity = K,
                                                            real.lag = real.lag,
                                                            time.interval = this.time.interval))
@@ -301,12 +340,16 @@ all.lag.data.4 = all.lag.data.4 %>% mutate(obs.minus.real.lag = lag - real.lag)
 saveRDS(all.lag.data.2, paste0(OUTPUT_FIGS_PATH,"all.lag.data.logistic.varying.lags.rds"))    
 saveRDS(all.lag.data.3, paste0(OUTPUT_FIGS_PATH,"all.lag.data.logistic.varying.growth.rate.rds"))   
 saveRDS(all.lag.data.4, paste0(OUTPUT_FIGS_PATH,"all.lag.data.logistic.varying.time.interval.rds"))   
+saveRDS(logistic.curves.2, paste0(OUTPUT_FIGS_PATH,"all.lag.data.logistic.varying.lags.curves.rds"))    
+saveRDS(logistic.curves.3, paste0(OUTPUT_FIGS_PATH,"all.lag.data.logistic.varying.growth.rate.curves.rds"))   
+saveRDS(logistic.curves.4, paste0(OUTPUT_FIGS_PATH,"all.lag.data.logistic.varying.time.interval.curves.rds"))   
 
 
 
 all.lag.data.2 = readRDS(paste0(OUTPUT_FIGS_PATH,"all.lag.data.logistic.varying.lags.rds"))    
 all.lag.data.3 = readRDS(paste0(OUTPUT_FIGS_PATH,"all.lag.data.logistic.varying.growth.rate.rds"))   
 all.lag.data.4 = readRDS(paste0(OUTPUT_FIGS_PATH,"all.lag.data.logistic.varying.time.interval.rds"))   
+
 
 
 jpeg(sprintf("%sFig4_logistic_noise_vs_grwoth_rate.png", OUTPUT_FIGS_PATH), width = 60, height=30, units = "cm", res = 600)
@@ -359,7 +402,6 @@ dev.off()
 
 ######################## SIMULATE MODNOS DATA ##############################
 # parameters are chosen so that the curve resambles the logistic one
-Num.obs = 100
 real.lag = 2.5
 a = 0.03*10^7 #so that the curve has similar K to the one by logistic growth
 Vh = 150*10^(-7) #so that the curve has similar K to the one by logistic growth
@@ -382,6 +424,15 @@ all.lag.data = data.frame(curve_id = character(0),
                           real.lag = numeric(0),
                           time.interval = numeric(0))
 
+monod.curves = data.frame(time = numeric(0),
+                             biomass = numeric(0),
+                             curve_id = character(0), 
+                             sd = numeric(0),
+                             Vh = numeric(0),
+                             a = numeric(0),
+                             real.lag = numeric(0),
+                             time.interval = numeric(0))
+
 monod.simulated.data.basic = Simulate.Monod.With.Lag(a = a,Vh=Vh,Kh=Kh, N0=N0,G0=13.9, lag=real.lag, times=times)
 ggplot(data = monod.simulated.data.basic, aes(x = time, y = biomass )) + geom_point() + geom_line() +
 ylim(c(10^6, 5*10^6))
@@ -392,47 +443,67 @@ Plot.Lag.Fit(data.monod.with.lag) + my_theme
 
 
 all.lag.data.1.monod = all.lag.data %>% filter(FALSE)
+monod.curves.1 = monod.curves %>% filter(FALSE)
 for (this.Vh in Vhs) {
   monod.simulated.data.basic = Simulate.Monod.With.Lag(a = a,Vh=this.Vh,Kh=Kh, N0=N0,G0=13.9, lag=real.lag, times=times)
   
-  lag.df = Get.Lag.Fitting.Data.For.Noisy.Simulations(monod.simulated.data.basic,
+  lag.df.obj = Get.Lag.Fitting.Data.For.Noisy.Simulations(monod.simulated.data.basic,
                                                       sd_range = sd_range,
                                                       biomass.increase.threshold,
                                                       Num.obs = Num.obs) 
-  all.lag.data.1.monod = rbind(all.lag.data.1.monod, lag.df %>% mutate(Vh = this.Vh,
+  all.lag.data.1.monod = rbind(all.lag.data.1.monod, 
+                               lag.df.obj$lag.df %>% mutate(Vh = this.Vh,
                                                            a = a,
                                                            real.lag = real.lag,
                                                            time.interval = time.interval))
+  
+  monod.curves.1 = rbind(monod.curves.1,
+                         lag.df.obj$curves  %>% mutate(Vh = this.Vh,
+                                                        a = a,
+                                                        real.lag = real.lag,
+                                                        time.interval = time.interval))
 }
 
 
-
-all.lag.data.2.monod = all.lag.data %>% filter(FALSE)
+monod.curves.2 = monod.curves %>% filter(FALSE)
+all.lag.data.2.monod = monod.curves %>% filter(FALSE)
 for (this.real.lag in real.lags) {
   monod.simulated.data.basic = Simulate.Monod.With.Lag(a = a,Vh=Vh,Kh=Kh, N0=N0,G0=13.9, lag=this.real.lag, times=times)
-  lag.df = Get.Lag.Fitting.Data.For.Noisy.Simulations(monod.simulated.data.basic,
+  lag.df.obj = Get.Lag.Fitting.Data.For.Noisy.Simulations(monod.simulated.data.basic,
                                                       sd_range = sd_range,
                                                       biomass.increase.threshold,
                                                       Num.obs = Num.obs) 
-  all.lag.data.2.monod = rbind(all.lag.data.2.monod, lag.df %>% mutate(Vh = Vh,
+  all.lag.data.2.monod = rbind(all.lag.data.2.monod, lag.df.obj$lag.df %>% mutate(Vh = Vh,
                                                            a = a,
                                                            real.lag = this.real.lag,
                                                            time.interval = time.interval))
+  monod.curves.2 = rbind(monod.curves.2,
+                         lag.df.obj$curves  %>% mutate(Vh = Vh,
+                                                       a = a,
+                                                       real.lag = this.real.lag,
+                                                       time.interval = time.interval))
 }
 
 
 
 all.lag.data.3.monod = all.lag.data %>% filter(FALSE)
+monod.curves.3 = monod.curves %>% filter(FALSE)
 for (this.time.interval in c(0.1, 0.5, 2)) {
   monod.simulated.data.basic = Simulate.Monod.With.Lag(a = a,Vh=Vh,Kh=Kh, N0=N0,G0=13.9, lag=real.lag, times=seq(0,24,this.time.interval))
-  lag.df = Get.Lag.Fitting.Data.For.Noisy.Simulations(monod.simulated.data.basic,
+  lag.df.obj = Get.Lag.Fitting.Data.For.Noisy.Simulations(monod.simulated.data.basic,
                                                       sd_range = sd_range,
                                                       biomass.increase.threshold,
                                                       Num.obs = Num.obs) 
-  all.lag.data.3.monod = rbind(all.lag.data.3.monod, lag.df %>% mutate(Vh = Vh,
+  all.lag.data.3.monod = rbind(all.lag.data.3.monod, lag.df.obj$lag.df %>% mutate(Vh = Vh,
                                                            a = a,
                                                            real.lag = real.lag,
                                                            time.interval = this.time.interval))
+  
+  monod.curves.3 = rbind(monod.curves.3,
+                         lag.df.obj$curves  %>% mutate(Vh = Vh,
+                                                       a = a,
+                                                       real.lag = real.lag,
+                                                       time.interval = this.time.interval))
 }
 
 
@@ -444,7 +515,10 @@ all.lag.data.3.monod = all.lag.data.3.monod %>% mutate(obs.minus.real.lag = lag 
 
 saveRDS(all.lag.data.1.monod, paste0(OUTPUT_FIGS_PATH,"all.lag.data.monod.varying.Vh.rds"))    
 saveRDS(all.lag.data.2.monod, paste0(OUTPUT_FIGS_PATH,"all.lag.data.monod.varying.lags.rds"))    
-saveRDS(all.lag.data.3.monod, paste0(OUTPUT_FIGS_PATH,"all.lag.data.monod.varying.time.interval.rds"))   
+saveRDS(all.lag.data.3.monod, paste0(OUTPUT_FIGS_PATH,"all.lag.data.monod.varying.time.interval.rds"))  
+saveRDS(monod.curves.1, paste0(OUTPUT_FIGS_PATH,"all.lag.data.monod.varying.Vh.curves.rds"))    
+saveRDS(monod.curves.2, paste0(OUTPUT_FIGS_PATH,"all.lag.data.monod.varying.lags.curves.rds"))    
+saveRDS(monod.curves.3, paste0(OUTPUT_FIGS_PATH,"all.lag.data.monod.varying.time.interval.curves.rds"))  
 
 
 jpeg(sprintf("%sFig4_Monod_noise_vs_Vh.png", OUTPUT_FIGS_PATH), width = 60, height=30, units = "cm", res = 600)

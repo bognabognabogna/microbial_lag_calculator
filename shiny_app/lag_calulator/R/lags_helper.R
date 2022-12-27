@@ -112,7 +112,6 @@ Fit.Exponential.Lag = function(data, tangent.method, N0, n.points.in.curve = 3) 
   }
   
   data.new$predicted = NA
-  data.new$lag.calculation.method = paste("Exponential ", tangent.method)
   # data.new has columns with lag, intercept, slope, log.N0
   return(data.new)
 }
@@ -197,7 +196,6 @@ Fit.Max.Inflection.Lag = function(data) {
         lag = round(lag.this.curve,1))
     data.new = rbind(data.new, data_this_curve)
   }
-  data.new$lag.calculation.method = "max growth acceleration"
   return(data.new)
 }
 
@@ -301,65 +299,233 @@ Simulate.Exponential.Data.With.Lag = function(N0, growth.rate, lag, times) {
 }
 
 
+CompareAlgorithms =  function(nlsresLM.no.bound, nlsresPORT, nlsresLM) {
+  if (!all(is.na(nlsresLM.no.bound))) {
+    s = summary(nlsresLM.no.bound)
+    if (all(as.numeric(s$coefficients[,1]) >= 0)) {
+      nlsresLM.no.bound = nlsresLM.no.bound
+    } else {
+      nlsresLM.no.bound = NA
+    }
+  }
+  
+  # first compare two bounded models 
+  if (!all(is.na(nlsresPORT)) & !all(is.na(nlsresLM))) {
+    # if both bounded models are available compare them and choose the better one
+    anova.res = anova(nlsresLM, nlsresPORT)
+    better.model.idx = which(anova.res$`Res.Sum Sq` == min(anova.res$`Res.Sum Sq`))
+    if (better.model.idx ==1) {nlsres.bounded = nlsresLM} else if (better.model.idx == 2) {nlsres.bounded = nlsresPORT}
+  } else if (!all(is.na(nlsresPORT))) {
+    nlsres.bounded = nlsresPORT
+  } else if (!all(is.na(nlsresLM))) {
+    nlsres.bounded = nlsresLM
+  } else {
+    nlsres.bounded = NA
+  }
+  
+  # the netter bounded model compare to unbounded
+  if (!all(is.na(nlsres.bounded)) & !all(is.na(nlsresLM.no.bound))) {
+    # if both bounded models are available compare them and choose the better one
+    anova.res = anova(nlsres.bounded, nlsresLM.no.bound)
+    better.model.idx = which(anova.res$`Res.Sum Sq` == min(anova.res$`Res.Sum Sq`))
+    if (better.model.idx ==1) {nlsres = nlsres.bounded} else if (better.model.idx == 2) {nlsres = nlsresLM.no.bound}
+  } else if (!all(is.na(nlsres.bounded))) {
+    nlsres = nlsres.bounded
+  } else if (!all(is.na(nlsresLM.no.bound))) {
+    nlsres = nlsresLM.no.bound
+  } else {
+    nlsres = NA
+  }
+  return(nlsres)
+  
+}
 
+
+Choose.Best.Lag.Fitting.Algorithm.Baranyi = function(growthcurve, 
+                                                     LOG10N0, 
+                                                     init.lag, 
+                                                     init.mumax,
+                                                     init.LOG10Nmax, 
+                                                     maxiter, lower.bound) {
+
+  # choose best from LM and port 
+  # Sometimes the lower.bound argument makes the fit much worse.
+  tryCatch(
+    expr = 
+      {nlsresLM = nlsLM(formula = baranyi, 
+          data = growthcurve, 
+          start = list(lag=init.lag, mumax=init.mumax, LOG10N0 = LOG10N0, LOG10Nmax = init.LOG10Nmax),
+          control = nls.control(maxiter = maxiter),
+          lower = lower.bound)
+  },
+    error=function(cond) {
+      # this operator assigns value outside the error environment
+      nlsresLM <<- NA
+    })
+  tryCatch(
+    expr = 
+      {nlsresLM.no.bound = nlsLM(formula = baranyi,
+                              data = growthcurve, 
+                              start = list(lag=init.lag, mumax=init.mumax, LOG10N0 = LOG10N0, LOG10Nmax = init.LOG10Nmax), 
+                              control = nls.control(maxiter = maxiter))
+    },
+    error=function(cond) {
+      nlsresLM.no.bound <<- NA
+    })
+  tryCatch(
+    expr = 
+      {nlsresPORT = nls(baranyi, 
+                     data = growthcurve, 
+                     start = list(lag=init.lag, mumax=init.mumax, LOG10N0 = LOG10N0, LOG10Nmax = init.LOG10Nmax), 
+                     algorithm = "port", 
+                     control = nls.control(maxiter = maxiter),
+                     lower= lower.bound)
+    },
+    error=function(cond) {
+      nlsresPORT <<- NA
+    })
+  
+  nlsres = CompareAlgorithms(nlsresLM.no.bound, nlsresPORT, nlsresLM)
+    # consider the model without lower bounds only if the resulted westimates are above 0
+    return(nlsres)
+    
+  }
+  
+  
+
+
+Choose.Best.Lag.Fitting.Algorithm.Logistic = function(growthcurve, N0, 
+                                             init.growth.rate = init.growth.rate, init.K = init.K, init.lag = init.lag,
+                                             maxiter = 100,
+                                             lower.bound = c(0,0,0)) {
+  # choose best from LM and port 
+  # Sometimes the lower.bound argument makes the fit much worse.
+  tryCatch( 
+    expr = 
+      {nlsresLM = nlsLM(formula = biomass ~ N0 + (time >= lag)*N0*(-1+K*exp(growth.rate*(time-lag))/(K - N0 + N0*exp(growth.rate*(time - lag)))), 
+                     data = growthcurve, 
+                     start = list(growth.rate = init.growth.rate, K=init.K, lag = init.lag), 
+                     control = nls.control(maxiter = maxiter),
+                     lower= lower.bound)
+        },
+    error=function(cond) {
+      nlsresLM <<- NA
+    })
+  tryCatch(
+    expr = 
+      {nlsresLM.no.bound = nlsLM(formula = biomass ~ N0 + (time >= lag)*N0*(-1+K*exp(growth.rate*(time-lag))/(K - N0 + N0*exp(growth.rate*(time - lag)))), 
+                              data = growthcurve, 
+                              start = list(growth.rate = init.growth.rate, K=init.K, lag = init.lag), 
+                              control = nls.control(maxiter = maxiter))
+      },
+    error=function(cond) {
+      nlsresLM.no.bound <<- NA
+    })
+  tryCatch(
+    expr = 
+      {nlsresPORT = nls(biomass ~ N0 + (time >= lag)*N0*(-1+K*exp(growth.rate*(time-lag))/(K - N0 + N0*exp(growth.rate*(time - lag)))), growthcurve, 
+                     list(growth.rate = init.growth.rate, K=init.K, lag = init.lag), 
+                     algorithm = "port", 
+                     control = nls.control(maxiter = maxiter),
+                     lower= lower.bound)},
+    error=function(cond) {
+      nlsresPORT <<- NA
+    })
+  
+  nlsres = CompareAlgorithms(nlsresLM.no.bound, nlsresPORT, nlsresLM)
+  # consider the model without lower bounds only if the resulted westimates are above 0
+  return(nlsres)
+  
+}
+
+
+
+  
 # growthcurve has two columns: time and biomass
 Calculate.Lag.Fitting.To.Logistic.With.Lag = function(growthcurve, N0, 
                                                       init.growth.rate = init.growth.rate, init.K = init.K, init.lag = init.lag,
-                                                      algorithm = "Levenberg-Marquardt", # or "port" for nls
-                                                      max.iter = 100) {
+                                                      algorithm = "auto",# Levenberg-Marquardt", # or "port" for nls
+                                                      maxiter = 100,
+                                                      lower.bound = c(0,0,0)) {
   tryCatch(
-   {
-
-     # nlsLM( is a more robust version of nls, using  Levenberg-Marquardt algorithm
-     if (algorithm == "Levenberg-Marquardt") {
-        nlsres = nlsLM(biomass ~ N0 + (time >= lag)*N0*(-1+K*exp(growth.rate*(time-lag))/(K - N0 + N0*exp(growth.rate*(time - lag)))), growthcurve, 
-                   list(growth.rate = init.growth.rate, K=init.K, lag = init.lag), 
-                   control = nls.control(maxiter = max.iter))
-     } else {
-       nlsres = nls(biomass ~ N0 + (time >= lag)*N0*(-1+K*exp(growth.rate*(time-lag))/(K - N0 + N0*exp(growth.rate*(time - lag)))), growthcurve, 
-                      list(growth.rate = init.growth.rate, K=init.K, lag = init.lag), 
-                      algorithm = algorithm, 
-                      control = nls.control(maxiter = max.iter))
-     }
-      #plotfit(nls1, smooth = TRUE)
-      lagN = coef(nlsres)[3] %>% unname()
-      return(list(lagN = lagN, nlsres = nlsres))
-    },
+    expr = 
+      {if (algorithm == "auto") {
+          nlsres = Choose.Best.Lag.Fitting.Algorithm.Logistic(growthcurve, N0, 
+                                                              init.growth.rate = init.growth.rate, init.K = init.K, init.lag = init.lag,
+                                                              maxiter = maxiter,
+                                                              lower.bound = lower.bound)
+          
+          # nlsLM( is a more robust version of nls, using  Levenberg-Marquardt algorithm
+        } else if (algorithm == "Levenberg-Marquardt") {
+          nlsres = nlsLM(formula = biomass ~ N0 + (time >= lag)*N0*(-1+K*exp(growth.rate*(time-lag))/(K - N0 + N0*exp(growth.rate*(time - lag)))), 
+                         data = growthcurve, 
+                         start = list(growth.rate = init.growth.rate, K=init.K, lag = init.lag), 
+                         control = nls.control(maxiter = maxiter))
+                         #lower= lower.bound)
+        } else if (algorithm == "port") {
+          nlsres = nls(biomass ~ N0 + (time >= lag)*N0*(-1+K*exp(growth.rate*(time-lag))/(K - N0 + N0*exp(growth.rate*(time - lag)))), growthcurve, 
+                       list(growth.rate = init.growth.rate, K=init.K, lag = init.lag), 
+                       algorithm = "port", 
+                       control = nls.control(maxiter = maxiter))
+                       #lower= lower.bound)
+        } else {
+          nlsres = nls(biomass ~ N0 + (time >= lag)*N0*(-1+K*exp(growth.rate*(time-lag))/(K - N0 + N0*exp(growth.rate*(time - lag)))), growthcurve, 
+                       list(growth.rate = init.growth.rate, K=init.K, lag = init.lag), 
+                       algorithm = algorithm, 
+                       control = nls.control(maxiter = maxiter))
+        }
+          lagN = coef(nlsres)[names(coef(nlsres)) == "lag"] %>% unname()
+          },
     error=function(cond) {
-      lagN = NA
-      nlsres = NA
-      print(cond)
-    return(list(lagN = lagN, nlsres = nlsres))
+      lagN <<- NA
+      nlsres <<- NA
+      #print(cond)
     })
+  return(list(lagN = lagN, nlsres = nlsres))
 }
 
 
-Calculate.Lag.Fitting.To.Baranyi.With.Lag = function(growthcurve, LOG10N0 = NULL, init.lag = NULL, init.mumax = NULL, init.LOG10Nmax = NULL, algorithm = "Levenberg-Marquardt", maxiter = 100) {
-  tryCatch({
-    if (algorithm == "Levenberg-Marquardt") {
-      nlsres = nlsLM(baranyi, growthcurve, 
-                     list(lag=init.lag, mumax=init.mumax, LOG10N0 = LOG10N0, LOG10Nmax = init.LOG10Nmax),
-                     control = nls.control(maxiter = maxiter)
-      )
-    } else {
-      nlsres = nls(baranyi, growthcurve, 
-                   list(lag=init.lag, mumax=init.mumax, LOG10N0 = LOG10N0, LOG10Nmax = init.LOG10Nmax),
-                   algorithm = algorithm, 
-                   control = nls.control(maxiter = maxiter))
-    }
-      #plotfit(nls1, smooth = TRUE)
-      lagN = coef(nlsres)[1] %>% unname()
-      return(list(lagN = lagN, nlsres = nlsres))
+Calculate.Lag.Fitting.To.Baranyi.With.Lag = function(growthcurve, LOG10N0 = NULL, init.lag = NULL, init.mumax = NULL, init.LOG10Nmax = NULL, algorithm = "auto", maxiter = 100, lower.bound = c(0,0,0, 0)) {
+  tryCatch(
+    expr = 
+      {if (algorithm == "auto") {
+          nlsres = Choose.Best.Lag.Fitting.Algorithm.Baranyi(growthcurve, 
+                                                             LOG10N0 = LOG10N0, 
+                                                             init.lag = init.lag, 
+                                                             init.mumax = init.mumax, 
+                                                             init.LOG10Nmax = init.LOG10Nmax, 
+                                                             maxiter = maxiter, 
+                                                             lower.bound = lower.bound)
+          
+          # nlsLM( is a more robust version of nls, using  Levenberg-Marquardt algorithm
+        } else if (algorithm == "Levenberg-Marquardt") {
+          nlsres = nlsLM(baranyi, growthcurve, 
+                         list(lag=init.lag, mumax=init.mumax, LOG10N0 = LOG10N0, LOG10Nmax = init.LOG10Nmax),
+                         control = nls.control(maxiter = maxiter))
+                        #lower= lower.bound)
+        } else if (algorithm == "port") {
+          nlsres = nls(baranyi, growthcurve, 
+                       list(lag=init.lag, mumax=init.mumax, LOG10N0 = LOG10N0, LOG10Nmax = init.LOG10Nmax),
+                       algorithm = "port", 
+                       control = nls.control(maxiter = maxiter))
+                      #lower= lower.bound)
+        } else {
+          nlsres = nls(baranyi, growthcurve, 
+                       list(lag=init.lag, mumax=init.mumax, LOG10N0 = LOG10N0, LOG10Nmax = init.LOG10Nmax),
+                       algorithm = algorithm, 
+                       control = nls.control(maxiter = maxiter))
+        }
+          lagN = coef(nlsres)[names(coef(nlsres)) == "lag"] %>% unname()
     },
     error=function(cond) {
-      lagN = NA
-      nlsres = NA
-      return(list(lagN = lagN, nlsres = nlsres))
+      lagN <<- NA
+      nlsres <<- NA
     })
+  return(list(lagN = lagN, nlsres = nlsres))
 }
 
 
-Get.Initial.Parameters.Logistic = function(data_this_curve, this.N0, init.K, init.lag, init.growth.rate) {
+Get.Initial.Parameters.Logistic = function(data_this_curve, this.N0, init.K, init.lag, init.growth.rate, minb = 0.2, maxb = 0.8) {
   if (is.null(init.K)) {
     max.this.data = max(data_this_curve$biomass, na.rm = TRUE)
     init.K = max.this.data %>% as.numeric()
@@ -372,8 +538,8 @@ Get.Initial.Parameters.Logistic = function(data_this_curve, this.N0, init.K, ini
     data_this_curve_exponential = data_this_curve %>%
       mutate(
         max.biomass = max(data_this_curve$biomass),
-        min.threshold = this.N0 + 0.2*(max.biomass - this.N0),
-        max.threshold = this.N0 + 0.8*(max.biomass - this.N0)) %>%
+        min.threshold = this.N0 + minb*(max.biomass - this.N0),
+        max.threshold = this.N0 + maxb*(max.biomass - this.N0)) %>%
       # take only the points that are in between min and max
       filter(biomass <= max.threshold & biomass >= min.threshold)
     data_this_curve_exponential$logdata = log(data_this_curve_exponential$biomass/this.N0)
@@ -392,7 +558,7 @@ Get.Initial.Parameters.Logistic = function(data_this_curve, this.N0, init.K, ini
   return(list(init.K = init.K, init.lag = init.lag, init.growth.rate = init.growth.rate))
 }
 
-Calculate.Lagistic.Fit.Lag = function(data, N0, init.growth.rate = NULL, init.K = NULL, init.lag = NULL, algorithm, max.iter, return.all.params = FALSE,
+Calculate.Lagistic.Fit.Lag = function(data, N0, init.growth.rate = NULL, init.K = NULL, init.lag = NULL, algorithm, maxiter, return.all.params = FALSE,
                                       low.bound.for.gr = 0.2, upper.bound.for.gr = 0.8) {
   if (!("curve_id" %in% names(data))) {
     data$curve_id = NA
@@ -414,7 +580,7 @@ Calculate.Lagistic.Fit.Lag = function(data, N0, init.growth.rate = NULL, init.K 
                                                           init.K = initial.parameters$init.K, 
                                                           init.lag = initial.parameters$init.lag, 
                                                           algorithm =algorithm, 
-                                                          max.iter = max.iter)
+                                                          maxiter = maxiter)
     data_this_curve = data_this_curve %>% 
       mutate(lag = round(this.fitting.object$lagN,1))
     data_this_curve$predicted = if (!any(is.na(this.fitting.object$nlsres))) {predict(this.fitting.object$nlsres, data_this_curve) } else {data_this_curve$predicted = NA}
@@ -422,8 +588,7 @@ Calculate.Lagistic.Fit.Lag = function(data, N0, init.growth.rate = NULL, init.K 
     
     fiting.list[[i]] = this.fitting.object$nlsres
   }
-  data.new$lag.calculation.method = "Fitting lagged logistic"
-  
+ 
   if (!return.all.params) {
   return(data.new)
   } else {
@@ -463,7 +628,7 @@ Get.Initial.Parameters.Baranyi = function(data_this_curve, this.N0, init.lag, in
 }
 
 
-Calculate.Baranyi.Fit.Lag = function(data, N0, init.lag = NULL, init.growth.rate = NULL) {
+Calculate.Baranyi.Fit.Lag = function(data, N0, init.lag = NULL, init.growth.rate = NULL, algorithm = "auto", maxiter = 100) {
   data.new = data %>% filter(FALSE) %>% mutate(lag = numeric(0), predicted = numeric(0))
   for (this_curve_id in unique(data$curve_id)) {
     data_this_curve = data %>% filter(curve_id == this_curve_id)
@@ -476,11 +641,14 @@ Calculate.Baranyi.Fit.Lag = function(data, N0, init.lag = NULL, init.growth.rate
     init.LOG10Nmax = max(data_this_curve_for_model$LOG10N)
     initial.parameters.baranyi = Get.Initial.Parameters.Baranyi(data_this_curve, this.N0, init.lag, init.growth.rate)
     
-    fitting.object.this.curve = Calculate.Lag.Fitting.To.Baranyi.With.Lag(data_this_curve_for_model, 
-                                                                          init.LOG10N0, 
-                                                                          initial.parameters.baranyi$init.lag, 
-                                                                          initial.parameters.baranyi$init.mumax, 
-                                                                          init.LOG10Nmax)
+    fitting.object.this.curve = Calculate.Lag.Fitting.To.Baranyi.With.Lag(growthcurve = data_this_curve_for_model, 
+                                                                          LOG10N0 = init.LOG10N0, 
+                                                                          init.lag = initial.parameters.baranyi$init.lag, 
+                                                                          init.mumax = initial.parameters.baranyi$init.mumax, 
+                                                                          init.LOG10Nmax = init.LOG10Nmax,
+                                                                          algorithm = algorithm, 
+                                                                          maxiter = maxiter, 
+                                                                          lower.bound = c(0,0,0, 0))
     data_this_curve = data_this_curve %>%
       mutate(lag = round(fitting.object.this.curve$lagN,1))
     data_this_curve$predicted = if (!any(is.na(fitting.object.this.curve$nlsres))) {10^(predict(fitting.object.this.curve$nlsres, data_this_curve)) } else {data_this_curve$predicted = NA}
@@ -660,18 +828,22 @@ Calculate.Lag = function(data, method, pars) {
                                             init.K = pars$init.K, 
                                             init.lag = pars$init.lag,
                                             algorithm = pars$algorithm,
-                                            max.iter = pars$max.iter) 
+                                            maxiter = pars$maxiter) 
     } else if (selected.model == "baranyi") {
       data.new = Calculate.Baranyi.Fit.Lag(data, 
                                            N0, 
-                                           pars$init.lag,
-                                           pars$init.growth.rate)
+                                           init.lag = pars$init.lag,
+                                           init.growth.rate = pars$init.growth.rate,
+                                           algorithm = pars$algorithm,
+                                           maxiter = pars$maxiter) %>%
+        mutate(lag.calculation.method = "Fitting lagged baranyi")
+        
     } else {
       error("model not implemented")
     }
     data.new = data.new %>% 
       select(time, biomass, curve_id, lag, predicted.data = predicted) %>%
-      mutate(lag.calculation.method = "exponential",
+      mutate(lag.calculation.method = "parameter fitting to a model",
              log.biomass = log(biomass),
              diff = NA,
              second.deriv.b = NA,
@@ -756,8 +928,8 @@ Get.default.parameters = function() {
               n.points.in.curve = 3,
               init.growth.rate = NULL,#0.1, 
               init.lag = NULL, #3.5,
-              algorithm = "Levenberg-Marquardt",#"default", 
-              max.iter = 100)
+              algorithm = "auto",#"default", "Levenberg-Marquardt",#
+              maxiter = 100)
   return(pars)
               
 }
@@ -785,62 +957,32 @@ Cut.The.Data = function(real.data, max.time) {
 Get.Lag.Fitting.Data.For.Noisy.Simulations = function(simulated.data,
                                                       sd_range = seq(0.0, 0.5, 0.05),
                                                       biomass.increase.threshold,
-                                                      Num.obs = 100) {
+                                                      Num.obs = 100,
+                                                      curve_name = "curve") {
+  curves = data.frame(time = numeric(0), biomass = numeric(0), curve_id = character(0), sd = numeric(0))
   lag.df = data.frame(curve_id = character(0), 
                       lag = numeric(0), 
                       lag.calculation.method = character(0), 
                       sd = numeric(0))
   for (this.sd in sd_range) {
-    curves = data.frame(time = numeric(0), biomass = numeric(0), curve_id = character(0))
+    curves.this.sd = data.frame(time = numeric(0), biomass = numeric(0), curve_id = character(0))
     for (i in 1:Num.obs) {
       N0 = simulated.data$biomass[1]
       noise = rnorm(n = nrow(simulated.data), mean = 0, sd = this.sd*N0)
       curve_i = simulated.data %>%
         mutate(biomass = biomass + noise,
-               curve_id = i)
-      curves = rbind(curves, curve_i)
+               curve_id = i,
+               sd = this.sd)
+      curves.this.sd = rbind(curves.this.sd, curve_i) 
       #ggplot(curve_i) + geom_point(aes(x=time, y = biomass))
     }
-    data.all.with.lag = Get.Lags.Calculated.By.All.Methods(curves, biomass.increase.threshold)
+    data.all.with.lag = Get.Lags.Calculated.By.All.Methods(curves.this.sd, biomass.increase.threshold)
     lag.data = data.all.with.lag %>% distinct(curve_id, lag, lag.calculation.method)
     lag.df = rbind(lag.df, lag.data %>% mutate(sd = this.sd))
+    curves = rbind(curves, curves.this.sd %>% mutate(sd = this.sd)) 
     #ggplot(lag.data) + geom_boxplot(aes(x=lag.calculation.method, y = lag)) + my_theme
   }
-  return(lag.df)
+  return(list(lag.df = lag.df, curves = curves))
 }
 
-GetLogisticParams = function(data_this_curve) {
-  if (nrow(data_this_curve) > 0) {
-    N0 = data_this_curve %>% arrange(time) %>% pull(biomass) %>% head(1)
-    max.this.data = max(data_this_curve$biomass, na.rm = TRUE)
-    data_this_curve$logdata = log(data_this_curve$biomass/N0)
-    mod = lm(logdata ~ time, data = data_this_curve)
-    init.growth.rate = mod$coefficients[2] %>% unname()
-    #Get.Lags.Calculated.By.All.Methods(
-    #this.data,biomass.increase.threshold) %>%
-    #select(time, biomass, curve_id, lag, lag.calculation.method)
-    init.lag = Calculate.Lag(data_this_curve, 
-                             method = "exponential", 
-                             pars = pars) %>% pull(lag) %>% unique()
-    
-    this.coef =    tryCatch(
-      {
-        nlsres = nls(biomass ~ N0 + (time >= lag)*N0*(-1+K*exp(growth.rate*(time-lag))/(K - N0 + N0*exp(growth.rate*(time - lag)))), data_this_curve, 
-                     list(
-                       growth.rate = init.growth.rate, 
-                       K = max.this.data, 
-                       lag = init.lag), 
-                     algorithm = pars$algorithm, 
-                     control = nls.control(maxiter = pars$max.iter))
-        print("got here")
-        return(coef(nlsres) %>% as.list() %>% as.data.frame()  %>% mutate(curve_id = "this_curve_id"))
-      },
-      error=function(cond) {
-        return(data.frame(growth.rate = NA, K = NA, lag = NA) %>% mutate(curve_id = "this_curve_id"))
-      })
-    
-  } else {
-    return(data.frame(growth.rate = NA, K = NA, lag = NA) %>% mutate(curve_id = "this_curve_id"))
-  }
-}
 
