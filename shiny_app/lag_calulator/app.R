@@ -37,35 +37,38 @@ ui <- shinyUI(fluidPage(
           tabPanel("Home",
                    br(),
                     strong("The MICROBIAL LAG PHASE DURATION CALCULATOR"),
-                    div("is an online tool designed for rapid analyses of growth curves (changes in microbial density monitored in time). 
-                    It allows for an easy and fast determination of the lag phase duration with the four most commonly used methods (described below) for user-specified datasets. 
-                      If you find our tool useful, please cite"),
-                    strong("Opalek & Smug, 2022... []."),
+                    div("This calculator is a tool developed to estimate lag phase duration out of a growth curve data for microbial populations. 
+                        The user provides datasets of microbial density change in time and chooses a method, parameters, and pre-processing techniques, according to the instruction below. 
+                      If you find our tool useful, please cite:"),
+                   tags$a(href="https://www.biorxiv.org/content/10.1101/2022.11.16.516631v1", "Opalek & Smug, 2022"),
                     br(),
                     div("
-                      In the publication, you can find a more detailed description of lag duration determination methods, together with a discussion of their advantages and biases. 
-                      We also discuss possible challenges related to each of the mrthods and point out where special attention should be paid to get the most reliable outcomes."),
-          
-                    br(),
+                      Within the work, we discuss the methods most frequently used in experimental and theoretical studies to estimate lag phase duration. We also point out possible difficulties related to each of the methods, some inconsistencies between them and we test their accuracies and biases. 
+                        We encourage you to see the publication for more details.."),
+                   strong("The datasets uploaded by users are not saved nor anyhow collected. "),
+                   br(),
+                   br(),
                     strong("INSTRUCTION"),
                    br(),
                    strong("1.	Upload your dataset."),
                    div("The accepted file formats are csv and txt. The dataset must contain two columns as specified below:"),
                     div("The first column: time (preferably in hours)"),
-                    div("The second column: biomass (preferably in CFU/mL)"),
-                    div("We recommend using biomass values instead of raw absorbance measurements as the correlation between biomass and absorbance is rarely linear. 
-                      However, if you’re unable to provide biomass values, the calculator will also work for absorbance data.
+                    div("The second column: popylation size (preferably in CFU/mL)"),
+                    div("The population size is recommend to be measured by biomass or CFU values instead of raw absorbance, 
+                    This is because the correlation between CFU number and absorbance is rarely linear. 
+                      However, if you’re unable to provide CFU/biomass values, the calculator will also work for absorbance data.
                       After uploading your dataset, specify the column and decimal separators."),
                    strong("2. Use some data pre-processing if needed"),
                    br(),
                    strong("3.	Chose lag duration calculation method"),
                    div("
                     Within this calculator we allow for a choice of one of the four most commonly used methods of lag duration calculation:"),
-                    div("MAX GROWTH ACCELERATION - finds the point of the growth curve where the second derivative is maximal"),
+                   div("BIOMASS INCREASE - an increase of biomass (or absorbance) by the user specified value from the beginning of growth (or minimal biomass/absorbance value)"),
+                   div("MAX GROWTH ACCELERATION - finds the point of the growth curve where the second derivative is maximal"),
                     div("TANGENT METHOD - the intersection of the initial density line and the  line tangent to the part of the curve where the growth rate is maximal"),
-                    div("BIOMASS INCREASE - an increase of biomass (or absorbance) by the user specified value from the beginning of growth (or minimal biomass/absorbance value)"),
-                    div("PARAMETER FITTING TO A MODEL - predicted values?"),
-                    strong("4.	Adjust parameters of the selected model."),
+                    div("PARAMETER FITTING TO A MODEL - uses fitting procedures to simultaneously fit all growth curve parameters (e.g. lag phase length, maximal growth rate, and maximal population size). "),
+                    strong("4.	Adjust parameters of the selected model or pre-process the data again.
+                           For example, if parameter fitting is chosen it may be helpful to cut out the stationary phase data (within data pre-processing tab)"),
                     ),
           tabPanel("Upload growth curve", 
           tags$head(tags$style(type="text/css", "
@@ -176,9 +179,9 @@ ui <- shinyUI(fluidPage(
                                           selected = "logistic"),
                               br(),
                               selectInput("algorithm",
-                                          label = "NLS fitting algorithm (defaults to Gauss-Newton)",
-                                          choices = c("Levenberg-Marquardt","port", "plinear", "port", "nl2sol"),
-                                          selected = "Levenberg-Marquardt"),
+                                          label = "NLS fitting algorithm (defaults to the best of:  bounded Levenberg-Marquardt, unbounded Levenberg-Marquardt or bounded port)",
+                                          choices = c("auto","Levenberg-Marquardt","port", "plinear", "port", "nl2sol"),
+                                          selected = "auto"),
                               br(),
                               numericInput("max.iter",
                                            label = "Max number of iterations",
@@ -187,6 +190,7 @@ ui <- shinyUI(fluidPage(
                                            max = 1000,
                                            step = 100),
                               br(),
+                              conditionalPanel(condition = "input.algorithm != 'auto'",
                               selectInput("own_init_params",
                                           label = "Do you want to specify \nyour own initial guesses n\for the parameters?",
                                           choices = c("No", "Yes"),
@@ -205,7 +209,7 @@ ui <- shinyUI(fluidPage(
                                            min = 0, 
                                            max = 1,
                                            step = 0.01)),
-             ),
+             )),
              conditionalPanel(condition = "input.method == 'biomass increase'",
                               h4("Parameters related to biomass increase method"),
                               numericInput("threshold",
@@ -239,6 +243,8 @@ ui <- shinyUI(fluidPage(
            h5("Lag fitting and growth curve data plot"),
            tableOutput("lag.value"),
            br(),
+           h5("Note that you may be able improve the efficiency of the methods by varying the parameters or further pre-processing the data. 
+              For example, if parameter fitting method is chosen it may be helpful to cut out the stationary phase data (within data pre-processing tab)."),
            plotOutput("growth.curve.plot"),
           ))),width = 8)
           )

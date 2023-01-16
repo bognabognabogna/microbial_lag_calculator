@@ -11,7 +11,10 @@ library(DEoptim)
 library(nlsMicrobio)
 library(minpack.lm)
 library(dplyr)
-SHINY.APP.PATH = "/Users/bognasmug/Documents/GitHub/microbial_lag_calulator/shiny_app/lag_calulator/"
+
+GITHUB.PATH = "/Users/bognasmug/Dropbox/Projects/Quiesence/2022_Lags/GitHub/microbial_lag_calulator/"
+SHINY.APP.PATH = sprintf("%sshiny_app/lag_calulator/", GITHUB.PATH)
+  #"/Users/bognasmug/Documents/GitHub/microbial_lag_calulator/shiny_app/lag_calulator/"
 source(sprintf("%sR/lags_helper.R", SHINY.APP.PATH))
 OUTPUT_FIGS_PATH = "/Users/bognasmug/MGG Dropbox/Bogna Smug/Projects/Quiesence/2022_Lags/Figures/2022_12_18/"
 #"/Users/bognasmug/Documents/GitHub/microbial_lag_calulator/Figures/"
@@ -22,7 +25,13 @@ text_size = 22
 biomass.increase.threshold = 10^5
 my_theme = Get.Theme(text_size)
 blank.constant = 5*10^6
-
+lag.methods = c("biomass \nincrease",           
+                "max\ngrowth acceleration",
+                "tangent to \nmax growth line",  
+                "tangent to \nmax growth point",
+                "par. fitting\nto baranyi model",
+                "par. fitting\nto logistic model")
+  
 real.data = read.table("/Users/bognasmug/MGG Dropbox/Bogna Smug/Projects/Quiesence/2022_Lags/data/chosen_exampless_biomass_ml.txt",
                   sep = "\t",
                   header = TRUE) %>%
@@ -35,7 +44,8 @@ real.data = read.table("/Users/bognasmug/MGG Dropbox/Bogna Smug/Projects/Quiesen
 real.data.with.lag = Get.Lags.Calculated.By.All.Methods(real.data, biomass.increase.threshold) 
 jpeg(sprintf("%sFig2.png", OUTPUT_FIGS_PATH), width = 40, height=30*11/4, units = "cm", res = 600)
 Plot.Lag.Fit(real.data.with.lag  %>%
-               mutate(curve_id = factor(curve_id, levels = curve_names))) + my_theme
+               mutate(curve_id = factor(curve_id, levels = curve_names)) %>%
+               mutate(lag.calculation.method = factor(lag.calculation.method, levels = lag.methods))) + my_theme
 dev.off()
 
 
@@ -184,7 +194,8 @@ all.simulated.data =
 
 jpeg(sprintf("%sFig1.png", OUTPUT_FIGS_PATH), width = 40, height=30, units = "cm", res = 600)
 data.all.with.lag = Get.Lags.Calculated.By.All.Methods(all.simulated.data, biomass.increase.threshold)
-Plot.Lag.Fit(data.all.with.lag) + my_theme
+Plot.Lag.Fit(data.all.with.lag %>%
+               mutate(lag.calculation.method = factor(lag.calculation.method, levels = lag.methods))) + my_theme
 dev.off()
 
 
