@@ -53,7 +53,7 @@ ui <- shinyUI(fluidPage(
                    strong("1.	Upload your dataset."),
                    div("The accepted file formats are csv and txt. The dataset must contain two columns as specified below:"),
                     div("The first column: time (preferably in hours)"),
-                    div("The second column: popylation size (preferably in CFU/mL)"),
+                    div("The second column: population size (preferably in CFU/mL)"),
                     div("The population size is recommend to be measured by biomass or CFU values instead of raw absorbance, 
                     This is because the correlation between CFU number and absorbance is rarely linear. 
                       However, if you’re unable to provide CFU/biomass values, the calculator will also work for absorbance data.
@@ -69,6 +69,12 @@ ui <- shinyUI(fluidPage(
                     div("PARAMETER FITTING TO A MODEL - uses fitting procedures to simultaneously fit all growth curve parameters (e.g. lag phase length, maximal growth rate, and maximal population size). "),
                     strong("4.	Adjust parameters of the selected model or pre-process the data again.
                            For example, if parameter fitting is chosen it may be helpful to cut out the stationary phase data (within data pre-processing tab)"),
+                   br(),
+                   br(),
+                   br(),
+                   strong("WHICH METHOD SHOULD I CHOOSE?"),
+                   imageOutput("Decission_Tree"),
+                   #img(src='Decission_Tree.png'),
                     ),
           tabPanel("Upload growth curve", 
           tags$head(tags$style(type="text/css", "
@@ -147,11 +153,11 @@ ui <- shinyUI(fluidPage(
                               choices = c("no", "yes"),
                               selected = "no"),
                   br(),
-                  conditionalPanel(condition = "input.smooth_data_flag == 'yes'",
-                                   selectInput("smooth_method",
-                                                label = "Choose the Tukey's smoother",
-                                                choices = c('3RS3R', '3RSS', '3R'),
-                                                selected = '3RS3R')),
+                  #conditionalPanel(condition = "input.smooth_data_flag == 'yes'",
+                  #                 selectInput("smooth_method",
+                  #                              label = "Choose the Tukey's smoother",
+                  #                              choices = c('3RS3R', '3RSS', '3R'),
+                  #                              selected = '3RS3R')),
                    ),
                   mainPanel(
                     br(),
@@ -260,6 +266,15 @@ ui <- shinyUI(fluidPage(
 
 # Define server logic required to draw a histogram
 server <- shinyServer(function(input, output) {
+  output$Decission_Tree <- renderImage({
+    
+    list(src = "www/Decission_Tree.png",
+         #width = "120%",
+         height = "200%"
+         )
+    
+  }, deleteFile = F)
+  
   
     isValid_input <- reactive({ !is.null(input$method) & !is.null(growth.curve.file)})
     
@@ -356,7 +371,7 @@ server <- shinyServer(function(input, output) {
     
     growth.curve.data.processed = reactive({
       if (input$smooth_data_flag == 'yes') {
-        data = Smooth.Data(growth.curve.data.cut(), input$smooth_method)
+        data = Smooth.Data(growth.curve.data.cut(), '3RS3R') #input$smooth_method)
       } else {
         data = growth.curve.data.cut()
       }
