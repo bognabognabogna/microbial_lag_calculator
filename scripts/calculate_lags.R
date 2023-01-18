@@ -14,6 +14,9 @@ library(dplyr)
 
 GITHUB.PATH = "/Users/bognasmug/Dropbox/Projects/Quiesence/2022_Lags/GitHub/microbial_lag_calulator/"
 SHINY.APP.PATH = sprintf("%sshiny_app/lag_calulator/", GITHUB.PATH)
+EXPERIMENTAL.DATA.PATH = sprintf("%sscripts/data/chosen_exampless_biomass_ml.txt", GITHUB.PATH)
+#EXPERIMENTAL.DATA.PATH = "/Users/bognasmug/MGG Dropbox/Bogna Smug/Projects/Quiesence/2022_Lags/data/chosen_exampless_biomass_ml.txt"
+
   #"/Users/bognasmug/Documents/GitHub/microbial_lag_calulator/shiny_app/lag_calulator/"
 source(sprintf("%sR/lags_helper.R", SHINY.APP.PATH))
 OUTPUT_FIGS_PATH = "/Users/bognasmug/MGG Dropbox/Bogna Smug/Projects/Quiesence/2022_Lags/Figures/2022_12_18/"
@@ -32,7 +35,7 @@ lag.methods = c("biomass \nincrease",
                 "par. fitting\nto baranyi model",
                 "par. fitting\nto logistic model")
   
-real.data = read.table("/Users/bognasmug/MGG Dropbox/Bogna Smug/Projects/Quiesence/2022_Lags/data/chosen_exampless_biomass_ml.txt",
+real.data = read.table(EXPERIMENTAL.DATA.PATH,
                   sep = "\t",
                   header = TRUE) %>%
   #mutate(biomass = OD,
