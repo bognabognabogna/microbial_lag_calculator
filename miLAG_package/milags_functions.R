@@ -1,1045 +1,1047 @@
 
 ############################################# helper functions #########################################
-#' Get.N0
-#' 
+#' get_n0
+#'
 #' Gets the initial biomass to relate to
 #' @param biomass vector of biomass (chronologically ordered as in growth curve)
-#' @param N0.method "first.observation" if the first point is taken as the initial biomass or 
-#' "minimal.observation" if the minimal biomass is taken is the initial point. 
-#' In "healthy" growth curves these options should be equivalent 
-#' but sometimes a drop in OD/biomass is observed at the beginning of a growth curve. 
+#' @param n0_method "first.observation" if the first point is taken as the initial biomass or
+#' "minimal.observation" if the minimal biomass is taken is the initial point.
+#' In "healthy" growth curves these options should be equivalent
+#' but sometimes a drop in OD/biomass is observed at the beginning of a growth curve.
 #' In this case it is not obvious what to assume the initial biomass is.
-#' @returns a value of the inititial biomass (either the first observation or the minimum value depending on the parameter N0.method)
-Get.N0 = function(biomass, N0.method) {
+#' @returns a value of the initial biomass (either the first observation or the minimum value depending on the parameter N0.method)
+get_n0 <- function(biomass, n0_method) {
   # Get the initial biomass value
-  if (N0.method == "first.observation") {
-    N0.calc = biomass[1]
-  } else if (N0.method == "minimal.observation") {
-    N0.calc = min(biomass)
+  if (n0_method == "first.observation") {
+    n0_calc <- biomass[1]
+  } else if (n0_method == "minimal.observation") {
+    n0_calc <- min(biomass)
   }
-  return(N0.calc)
+  return(n0_calc)
 }
 
 
 
-#' Fit.Exponential.Lag.To.Curve
-#' 
+#' fit_exp_lag_to_curve
+#'
 #' Fits the lag to one growth curve based on the basic tangent method
-#' @param data a data frame with two required columns names: "time" and "biomass", 
+#' @param data a data frame with two required columns names: "time" and "biomass",
 #' This is data from one growth curve only, one (mean) observation per time
-#' @param N0 the initial biomass (a tangent line crossing N0 line will determine the lag)
-#' @param tangent.method "local.regression" (if the tangent is fitted to a number of points around the maximal growth rate) 
+#' @param n0 the initial biomass (a tangent line crossing N0 line will determine the lag)
+#' @param tangent_method "local.regression" (if the tangent is fitted to a number of points around the maximal growth rate)
 #' or "to.point" (if the tangent is fitted only to the point where the growth rate is maximal); defaults to "to.point"
-#' @param n.points.in.curve if tangent.method = "local.regression" then n.points.in.curve is the number of points the line is fitted to; 
-#' defaults to 3 i.e. the point with the maximal uptake rate one point before and one point aftter
-#' @returns line.slope: slope of the tangent line, 
-#' line.intercept: intercept of the tangent line, 
+#' @param curve_points if tangent_method = "local.regression" then curve_points is the number of points the line is fitted to;
+#' defaults to 3 i.e. the point with the maximal uptake rate one point before and one point after
+#' @returns line_slope: slope of the tangent line,
+#' line_intercept: intercept of the tangent line,
 #' lag: lag,
-#' tangent.points: i..e a data frame of all points selected for fitting the line
-Fit.Exponential.Lag.To.Curve = function(data, N0, tangent.method = "to.point", n.points.in.curve = 3) {
-  data = data %>% as.data.frame() %>%
-    mutate(log.biomass = log(biomass), 
-           db = log.biomass - dplyr::lag(log.biomass,1),
+#' tangent_points: i..e a data frame of all points selected for fitting the line
+fit_exp_lag_to_curve <- function(data, n0, tangent_method = "to.point", curve_points = 3) {
+  data <- data %>% as.data.frame() %>%
+    mutate(log_biomass = log(biomass),
+           db = log_biomass - dplyr::lag(log_biomass,1),
            dt = time - dplyr::lag(time,1),
-           time.diff = (time + dplyr::lag(time))/2,
-           central_scheme_db = dplyr::lead(log.biomass) - dplyr::lag(log.biomass,1),
+           time_diff = (time + dplyr::lag(time))/2,
+           central_scheme_db = dplyr::lead(log_biomass) - dplyr::lag(log_biomass,1),
            central_scheme_dt = dplyr::lead(time) - dplyr::lag(time,1),
            db_over_dt = central_scheme_db/central_scheme_dt) #db/dt)
-  log.N0 = log(N0)
+  log_n0 <- log(n0)
   # Get the maximum growth rate
-  max.growth.rate = max(data$db_over_dt, na.rm = TRUE)
-  ind.max.diff = which(data$db_over_dt == max.growth.rate)
-  
-  if (length(ind.max.diff) > 1) {
+  max_gr_rate <- max(data$db_over_dt, na.rm = TRUE)
+  ind_max_diff <- which(data$db_over_dt == max_gr_rate)
+
+  if (length(ind_max_diff) > 1) {
     warning("Multiple points with max derivative: taking the first one")
-    ind.max.diff = ind.max.diff[1]
+    ind_max_diff <- ind_max_diff[1]
   }
-  if (tangent.method == "to.point") {
+  if (tangent_method == "to.point") {
     # 1. take simply one maximal growth rate point and calculate a tangent line to it
-    # by definition the slope of this line will be equal to its derivative i.e. the 
-    exponential.growth.points = data[ind.max.diff, ]
-    time.max.diff = exponential.growth.points$time
-    log.biomass.at.max.diff = exponential.growth.points$log.biomass
+    # by definition the slope of this line will be equal to its derivative i.e. the
+    exp_gr_points <- data[ind_max_diff, ]
+    time_max_diff <- exp_gr_points$time
+    max_diff_log_biomass <- exp_gr_points$log_biomass
     # ax + b = y
     # a = max.growth.rate
     # we know one point (x,y) = (time.max.diff, log.biomass.at.max.diff)
-    line.slope = max.growth.rate
-    line.intercept = log.biomass.at.max.diff - line.slope*time.max.diff
-  } else if (tangent.method == "local.regression") {
+    line_slope <- max_gr_rate
+    line_intercept <- max_diff_log_biomass - line_slope*time_max_diff
+  } else if (tangent_method == "local.regression") {
     # 2. Take N points around the maximal growth rate and fit a line,
-    # linearly etrapolate
-    n.points.around = floor((n.points.in.curve-1)/2)
-    exponential.growth.points = data[(ind.max.diff-n.points.around):(ind.max.diff+n.points.around),]
-    mod = lm(log.biomass ~ time, exponential.growth.points)
-    line.intercept = unname(mod$coefficients[1])
-    line.slope = unname(mod$coefficients[2])
+    # linearly extrapolate
+    around_points <- floor((curve_points-1)/2)
+    exp_gr_points <- data[(ind_max_diff-around_points):(ind_max_diff+around_points),]
+    mod <- lm(log_biomass ~ time, exp_gr_points)
+    line_intercept <- unname(mod$coefficients[1])
+    line_slope <- unname(mod$coefficients[2])
   }
   # at x=lag we have y = log.N0, so lag = (y-b)/a
-  lag = (log.N0 - line.intercept)/line.slope
-  return(list(line.slope = line.slope, line.intercept = line.intercept, lag = lag, 
-              tangent.points = exponential.growth.points %>% select(time, tangent.point = biomass)))
+  lag <- (log_n0 - line_intercept)/line_slope
+  return(list(line_slope = line_slope, line_intercept = line_intercept, lag = lag,
+              tangent_points = exp_gr_points %>% select(time, tangent_point = biomass)))
 }
 
 
 
 
-#' CompareAlgorithms
-#' 
-#' Comapres results of 3 objects obtained from running nls 
-#' @param nlsresLM.no.bound first object resulting from running nls
-#' @param nlsresPORT second object resulting from running nls
-#' @param nlsresLM third object resulting from running nls
-#' @returns the best fitting object (lowest Res.Sum Sq provided that all coefficients are nonnegative) 
-CompareAlgorithms =  function(nlsresLM.no.bound, nlsresPORT, nlsresLM) {
-  if (!all(is.na(nlsresLM.no.bound))) {
-    s = summary(nlsresLM.no.bound)
+#' compare_algorithms
+#'
+#' Compares results of 3 objects obtained from running nls
+#' @param nls_LM_no_bound first object resulting from running nls
+#' @param nls_PORT second object resulting from running nls
+#' @param nls_LM third object resulting from running nls
+#' @returns the best fitting object (lowest Res.Sum Sq provided that all coefficients are nonnegative)
+compare_algorithms <- function(nls_LM_no_bound, nls_PORT, nls_LM) {
+  if (!all(is.na(nls_LM_no_bound))) {
+    s <- summary(nls_LM_no_bound)
     if (all(as.numeric(s$coefficients[,1]) >= 0)) {
-      nlsresLM.no.bound = nlsresLM.no.bound
+      nls_LM_no_bound <- nls_LM_no_bound
     } else {
-      nlsresLM.no.bound = NA
+      nls_LM_no_bound <- NA
     }
   }
-  # first compare two bounded models 
-  if (!all(is.na(nlsresPORT)) & !all(is.na(nlsresLM))) {
+  # first compare two bounded models
+  if (!all(is.na(nls_PORT)) & !all(is.na(nls_LM))) {
     # if both bounded models are available compare them and choose the better one
-    anova.res = anova(nlsresLM, nlsresPORT)
-    better.model.idx = which(anova.res$`Res.Sum Sq` == min(anova.res$`Res.Sum Sq`))
-    if (better.model.idx ==1) {nlsres.bounded = nlsresLM} else if (better.model.idx == 2) {nlsres.bounded = nlsresPORT}
-  } else if (!all(is.na(nlsresPORT))) {
-    nlsres.bounded = nlsresPORT
-  } else if (!all(is.na(nlsresLM))) {
-    nlsres.bounded = nlsresLM
+    anova_res <- anova(nls_LM, nls_PORT)
+    better_model_idx <- which(anova_res$`Res.Sum Sq` == min(anova_res$`Res.Sum Sq`))
+    if (better_model_idx ==1) {nls_bounded <- nls_LM} else if (better_model_idx == 2) {nls_bounded <- nls_PORT}
+  } else if (!all(is.na(nls_PORT))) {
+    nls_bounded <- nls_PORT
+  } else if (!all(is.na(nls_LM))) {
+    nls_bounded <- nls_LM
   } else {
-    nlsres.bounded = NA
+    nls_bounded <- NA
   }
-  
+
   # the netter bounded model compare to unbounded
-  if (!all(is.na(nlsres.bounded)) & !all(is.na(nlsresLM.no.bound))) {
+  if (!all(is.na(nls_bounded)) & !all(is.na(nls_LM_no_bound))) {
     # if both bounded models are available compare them and choose the better one
-    anova.res = anova(nlsres.bounded, nlsresLM.no.bound)
-    better.model.idx = which(anova.res$`Res.Sum Sq` == min(anova.res$`Res.Sum Sq`))
-    if (better.model.idx ==1) {nlsres = nlsres.bounded} else if (better.model.idx == 2) {nlsres = nlsresLM.no.bound}
-  } else if (!all(is.na(nlsres.bounded))) {
-    nlsres = nlsres.bounded
-  } else if (!all(is.na(nlsresLM.no.bound))) {
-    nlsres = nlsresLM.no.bound
+    anova_res <- anova(nls_bounded, nls_LM_no_bound)
+    better_model_idx <- which(anova_res$`Res.Sum Sq` == min(anova_res$`Res.Sum Sq`))
+    if (better_model_idx ==1) {nls <- nls_bounded} else if (better_model_idx == 2) {nls <- nls_LM_no_bound}
+  } else if (!all(is.na(nls_bounded))) {
+    nls <- nls_bounded
+  } else if (!all(is.na(nls_LM_no_bound))) {
+    nls <- nls_LM_no_bound
   } else {
-    nlsres = NA
+    nls <- NA
   }
-  return(nlsres)
-  
+  return(nls)
+
 }
 
 
 
 
-#' Choose.Best.Lag.Fitting.Algorithm.Baranyi
-#' 
+#' choose_lag_fit_algorithm_baranyi
+#'
 #' Runs nlsLM/nls algorithms with three different parameter setups to fit the best Baranyi parameters to our data and chooses the best model
-#' @param growthcurve data from one specific growth curve with the following columns: LOG10N, t
+#' @param gr_curve data from one specific growth curve with the following columns: LOG10N, t
 #' @param LOG10N0 init value for the LOG10N0 parameter
-#' @param init.lag initial value for the lag
-#' @param init.mumax initial value for the mumax parameter
-#' @param init.LOG10Nmax initial value for the LOG10Nmax parameter
-#' @param maxiter max. number of itertaions
-#' @param lower.bound lower.bound for the bounded nls optimisation; 
-#' @returns the best nls fitting object with parameters fitted to Baranyi modek (lowest Res.Sum Sq provided that all coefficients are nonnegative) 
-Choose.Best.Lag.Fitting.Algorithm.Baranyi = function(growthcurve, 
+#' @param init_lag initial value for the lag
+#' @param init_mumax initial value for the mumax parameter
+#' @param init_LOG10Nmax initial value for the LOG10Nmax parameter
+#' @param max_iter max. number of iterations
+#' @param lower_bound lower bound for the bounded nls optimization;
+#' @returns the best nls fitting object with parameters fitted to Baranyi model (lowest Res.Sum Sq provided that all coefficients are nonnegative)
+choose_lag_fit_algorithm_baranyi <- function(gr_curve,
                                                      LOG10N0,
-                                                     init.lag, 
-                                                     init.mumax,
-                                                     init.LOG10Nmax, 
-                                                     maxiter, 
-                                                     lower.bound) {
+                                                     init_lag,
+                                                     init_mumax,
+                                                     init_LOG10Nmax,
+                                                     max_iter,
+                                                     lower_bound) {
 
-  # choose best from LM and port 
+  # choose best from LM and port
   # Sometimes the lower.bound argument makes the fit much worse.
   tryCatch(
-    expr = 
-      {nlsresLM = nlsLM(formula = baranyi, 
-          data = growthcurve, 
-          start = list(lag=init.lag, mumax=init.mumax, LOG10N0 = LOG10N0, LOG10Nmax = init.LOG10Nmax),
-          control = nls.control(maxiter = maxiter),
-          lower = lower.bound)
-  },
-    error=function(cond) {
-      # this operator assigns value outside the error environment
-      nlsresLM <<- NA
-    })
-  tryCatch(
-    expr = 
-      {nlsresLM.no.bound = nlsLM(formula = baranyi,
-                              data = growthcurve, 
-                              start = list(lag=init.lag, mumax=init.mumax, LOG10N0 = LOG10N0, LOG10Nmax = init.LOG10Nmax), 
-                              control = nls.control(maxiter = maxiter))
-    },
-    error=function(cond) {
-      nlsresLM.no.bound <<- NA
-    })
-  tryCatch(
-    expr = 
-      {nlsresPORT = nls(baranyi, 
-                     data = growthcurve, 
-                     start = list(lag=init.lag, mumax=init.mumax, LOG10N0 = LOG10N0, LOG10Nmax = init.LOG10Nmax), 
-                     algorithm = "port", 
-                     control = nls.control(maxiter = maxiter),
-                     lower= lower.bound)
-    },
-    error=function(cond) {
-      nlsresPORT <<- NA
-    })
-  
-  nlsres = CompareAlgorithms(nlsresLM.no.bound, nlsresPORT, nlsresLM)
-    # consider the model without lower bounds only if the resulted westimates are above 0
-    return(nlsres)
-    
-  }
-  
-  
-
-#' Choose.Best.Lag.Fitting.Algorithm.Logistic
-#' 
-#' Runs nlsLM/nls algorithms with three different parameter setups to fit the best Logistic model parameters to our data and chooses the best model
-#' @param growthcurve data from one specific growth curve with the following columns: LOG10N, t
-#' @param N0 the initial biomass
-#' @param init.growth.rate initial value for the growth rate
-#' @param init.K initial value for the saturation parameter K
-#' @param init.lag initial value for the lag parameter
-#' @param maxiter max. number of itertaions; defaults to 100
-#' @param lower.bound lower.bound for the bounded nls optimisation; defaults to 0
-#' @returns the best nls fitting object with parameters fitted to logistic model (lowest Res.Sum Sq provided that all coefficients are nonnegative) 
-Choose.Best.Lag.Fitting.Algorithm.Logistic = function(growthcurve, N0, 
-                                             init.growth.rate = init.growth.rate, 
-                                             init.K = init.K, 
-                                             init.lag = init.lag,
-                                             maxiter = 100,
-                                             lower.bound = c(0,0,0)) {
-  # choose best from LM and port 
-  # Sometimes the lower.bound argument makes the fit much worse.
-  tryCatch( 
-    expr = 
-      {nlsresLM = nlsLM(formula = biomass ~ N0 + (time >= lag)*N0*(-1+K*exp(growth.rate*(time-lag))/(K - N0 + N0*exp(growth.rate*(time - lag)))), 
-                     data = growthcurve, 
-                     start = list(growth.rate = init.growth.rate, K=init.K, lag = init.lag), 
-                     control = nls.control(maxiter = maxiter),
-                     lower= lower.bound)
-        },
-    error=function(cond) {
-      nlsresLM <<- NA
-    })
-  tryCatch(
-    expr = 
-      {nlsresLM.no.bound = nlsLM(formula = biomass ~ N0 + (time >= lag)*N0*(-1+K*exp(growth.rate*(time-lag))/(K - N0 + N0*exp(growth.rate*(time - lag)))), 
-                              data = growthcurve, 
-                              start = list(growth.rate = init.growth.rate, K=init.K, lag = init.lag), 
-                              control = nls.control(maxiter = maxiter))
+    expr =
+      {nls_LM <- nls_LM(formula = baranyi,
+                        data = gr_curve,
+                        start = list(lag=init_lag, mumax=init_mumax, LOG10N0 = LOG10N0, LOG10Nmax = init_LOG10Nmax),
+                        control = nls_control(max_iter = max_iter),
+                        lower = lower_bound)
       },
-    error=function(cond) {
-      nlsresLM.no.bound <<- NA
+    error = function(cond) {
+      # this operator assigns value outside the error environment
+      nls_LM <<- NA
     })
   tryCatch(
-    expr = 
-      {nlsresPORT = nls(biomass ~ N0 + (time >= lag)*N0*(-1+K*exp(growth.rate*(time-lag))/(K - N0 + N0*exp(growth.rate*(time - lag)))), growthcurve, 
-                     list(growth.rate = init.growth.rate, K=init.K, lag = init.lag), 
-                     algorithm = "port", 
-                     control = nls.control(maxiter = maxiter),
-                     lower= lower.bound)},
-    error=function(cond) {
-      nlsresPORT <<- NA
+    expr =
+      {nls_LM_no_bound <- nls_LM(formula = baranyi,
+                                 data = gr_curve,
+                                 start = list(lag=init_lag, mumax=init_mumax, LOG10N0 = LOG10N0, LOG10Nmax = init_LOG10Nmax),
+                                 control = nls_control(max_iter = max_iter))
+      },
+    error = function(cond) {
+      nls_LM_no_bound <<- NA
     })
-  
-  nlsres = CompareAlgorithms(nlsresLM.no.bound, nlsresPORT, nlsresLM)
-  # consider the model without lower bounds only if the resulted westimates are above 0
-  return(nlsres)
-  
+  tryCatch(
+    expr =
+      {nls_PORT <- nls(baranyi,
+                        data = gr_curve,
+                        start = list(lag=init_lag, mumax=init_mumax, LOG10N0 = LOG10N0, LOG10Nmax = init_LOG10Nmax),
+                        algorithm = "port",
+                        control = nls_control(max_iter = max_iter),
+                        lower = lower_bound)
+      },
+    error = function(cond) {
+      nls_PORT <<- NA
+    })
+
+  nls <- compare_algorithms(nls_LM_no_bound, nls_PORT, nls_LM)
+  # consider the model without lower bounds only if the resulted estimates are above 0
+  return(nls)
+
 }
 
 
 
-#' Choose.Best.Lag.Fitting.Algorithm.Logistic
-#' 
-#' Runs nlsLM/nls algorithm of the user's choice to fit the  Logistic model parameters to our data
-#' @param growthcurve data from one specific growth curve with these two columns: time and biomass
-#' @param N0 the initial biomass
-#' @param init.growth.rate initial value for the growth rate
-#' @param init.K initial value for the saturation parameter K
-#' @param init.lag initial value for the lag parameter
-#' @param algorithm defaults to "auto" which chooses between bounded and unbounded Levenberg-Marquardt method and the bounded port method
-#' @param maxiter max. number of itertaions; defaults to 100
-#' @param lower.bound lower.bound for the bounded nls optimisation; defaults to 0
-#' @returns lag and the nls fitting object with parameters fitted to logistic model
-Calculate.Lag.Fitting.To.Logistic.With.Lag = function(growthcurve, N0, 
-                                                      init.growth.rate = init.growth.rate, 
-                                                      init.K = init.K, 
-                                                      init.lag = init.lag,
-                                                      algorithm = "auto",# Levenberg-Marquardt", # or "port" for nls
-                                                      maxiter = 100,
-                                                      lower.bound = c(0,0,0)) {
+#' choose_lag_fit_algorithm_logistic
+#'
+#' Runs nlsLM/nls algorithms with three different parameter setups to fit the best Logistic model parameters to our data and chooses the best model
+#' @param gr_curve data from one specific growth curve with the following columns: LOG10N, t
+#' @param n0 the initial biomass
+#' @param init_gr_rate initial value for the growth rate
+#' @param init_K initial value for the saturation parameter K
+#' @param init_lag initial value for the lag parameter
+#' @param max_iter max. number of iterations; defaults to 100
+#' @param lower_bound lower bound for the bounded nls optimization; defaults to 0
+#' @returns the best nls fitting object with parameters fitted to logistic model (lowest Res.Sum Sq provided that all coefficients are nonnegative)
+choose_lag_fit_algorithm_logistic <- function(gr_curve, n0,
+                                                      init_gr_rate = init_gr_rate,
+                                                      init_K = init_K,
+                                                      init_lag = init_lag,
+                                                      max_iter = 100,
+                                                      lower_bound = c(0,0,0)) {
+  # choose best from LM and port
+  # Sometimes the lower.bound argument makes the fit much worse.
   tryCatch(
-    expr = 
+    expr =
+      {nls_LM <- nls_LM(formula = biomass ~ n0 + (time >= lag)*n0*(-1+K*exp(gr_rate*(time-lag))/(K - n0 + n0*exp(gr_rate*(time - lag)))),
+                        data = gr_curve,
+                        start = list(gr_rate = init_gr_rate, K=init_K, lag = init_lag),
+                        control = nls_control(max_iter = max_iter),
+                        lower = lower_bound)
+      },
+    error = function(cond) {
+      nls_LM <<- NA
+    })
+  tryCatch(
+    expr =
+      {nls_LM_no_bound <- nls_LM(formula = biomass ~ n0 + (time >= lag)*n0*(-1+K*exp(gr_rate*(time-lag))/(K - n0 + n0*exp(gr_rate*(time - lag)))),
+                                 data = gr_curve,
+                                 start = list(gr_rate = init_gr_rate, K=init_K, lag = init_lag),
+                                 control = nls_control(max_iter = max_iter))
+      },
+    error = function(cond) {
+      nls_LM_no_bound <<- NA
+    })
+  tryCatch(
+    expr =
+      {nls_PORT <- nls(biomass ~ n0 + (time >= lag)*n0*(-1+K*exp(gr_rate*(time-lag))/(K - n0 + n0*exp(gr_rate*(time - lag)))), gr_curve,
+                        list(gr_rate = init_gr_rate, K=init_K, lag = init_lag),
+                        algorithm = "port",
+                        control = nls_control(max_iter = max_iter),
+                        lower = lower_bound)},
+    error = function(cond) {
+      nls_PORT <<- NA
+    })
+
+  nls <- compare_algorithms(nls_LM_no_bound, nls_PORT, nls_LM)
+  # consider the model without lower bounds only if the resulted estimates are above 0
+  return(nls)
+
+}
+
+
+
+#' calc_lag_fit_to_logistic_with_lag
+#'
+#' Runs nlsLM/nls algorithm of the user's choice to fit the  Logistic model parameters to our data
+#' @param gr_curve data from one specific growth curve with these two columns: time and biomass
+#' @param n0 the initial biomass
+#' @param init_gr_rate initial value for the growth rate
+#' @param init_K initial value for the saturation parameter K
+#' @param init_lag initial value for the lag parameter
+#' @param algorithm defaults to "auto" which chooses between bounded and unbounded Levenberg-Marquardt method and the bounded port method
+#' @param max_iter max. number of iterations; defaults to 100
+#' @param lower_bound lower bound for the bounded nls optimization; defaults to 0
+#' @returns lag and the nls fitting object with parameters fitted to logistic model
+calc_lag_fit_to_logistic_with_lag <- function(gr_curve, n0,
+                                                      init_gr_rate = init_gr_rate,
+                                                      init_K = init_K,
+                                                      init_lag = init_lag,
+                                                      algorithm = "auto",# Levenberg-Marquardt", # or "port" for nls
+                                                      max_iter = 100,
+                                                      lower_bound = c(0,0,0)) {
+  tryCatch(
+    expr =
       {if (algorithm == "auto") {
-          nlsres = Choose.Best.Lag.Fitting.Algorithm.Logistic(growthcurve, N0, 
-                                                              init.growth.rate = init.growth.rate, init.K = init.K, init.lag = init.lag,
-                                                              maxiter = maxiter,
-                                                              lower.bound = lower.bound)
-          
-          # nlsLM( is a more robust version of nls, using  Levenberg-Marquardt algorithm
-        } else if (algorithm == "Levenberg-Marquardt") {
-          nlsres = nlsLM(formula = biomass ~ N0 + (time >= lag)*N0*(-1+K*exp(growth.rate*(time-lag))/(K - N0 + N0*exp(growth.rate*(time - lag)))), 
-                         data = growthcurve, 
-                         start = list(growth.rate = init.growth.rate, K=init.K, lag = init.lag), 
-                         control = nls.control(maxiter = maxiter))
-                         #lower= lower.bound)
-        } else if (algorithm == "port") {
-          nlsres = nls(biomass ~ N0 + (time >= lag)*N0*(-1+K*exp(growth.rate*(time-lag))/(K - N0 + N0*exp(growth.rate*(time - lag)))), growthcurve, 
-                       list(growth.rate = init.growth.rate, K=init.K, lag = init.lag), 
-                       algorithm = "port", 
-                       control = nls.control(maxiter = maxiter))
-                       #lower= lower.bound)
-        } else {
-          nlsres = nls(biomass ~ N0 + (time >= lag)*N0*(-1+K*exp(growth.rate*(time-lag))/(K - N0 + N0*exp(growth.rate*(time - lag)))), growthcurve, 
-                       list(growth.rate = init.growth.rate, K=init.K, lag = init.lag), 
-                       algorithm = algorithm, 
-                       control = nls.control(maxiter = maxiter))
-        }
-          lagN = coef(nlsres)[names(coef(nlsres)) == "lag"] %>% unname()
-          },
-    error=function(cond) {
-      lagN <<- NA
-      nlsres <<- NA
+        nls <- choose_lag_fit_algorithm_logistic(gr_curve, n0,
+                                                            init_gr_rate = init_gr_rate, init_K = init_K, init_lag = init_lag,
+                                                            max_iter = max_iter,
+                                                            lower_bound = lower_bound)
+
+        # nlsLM( is a more robust version of nls, using  Levenberg-Marquardt algorithm
+      } else if (algorithm == "Levenberg-Marquardt") {
+        nls <- nls_LM(formula = biomass ~ n0 + (time >= lag) * n0 * (-1 + K * exp(gr_rate * (time - lag)) / (K - n0 + n0 * exp(gr_rate * (time - lag)))),
+                       data = gr_curve,
+                       start = list(gr_rate = init_gr_rate, K = init_K, lag = init_lag),
+                       control = nls_control(max_iter = max_iter))
+        #lower= lower.bound)
+      } else if (algorithm == "port") {
+        nls <- nls(biomass ~ n0 + (time >= lag) * n0 * (-1 + K * exp(gr_rate * (time - lag)) / (K - n0 + n0 * exp(gr_rate * (time - lag)))), gr_curve,
+                     list(gr_rate = init_gr_rate, K = init_K, lag = init_lag),
+                     algorithm = "port",
+                     control = nls_control(max_iter = max_iter))
+        #lower= lower.bound)
+      } else {
+        nls <- nls(biomass ~ n0 + (time >= lag) * n0 * (-1 + K * exp(gr_rate * (time - lag)) / (K - n0 + n0 * exp(gr_rate * (time - lag)))), gr_curve,
+                     list(gr_rate = init_gr_rate, K = init_K, lag = init_lag),
+                     algorithm = algorithm,
+                     control = nls_control(max_iter = max_iter))
+      }
+        lag_N <- coef(nls)[names(coef(nls)) == "lag"] %>% unname()
+      },
+    error = function(cond) {
+      lag_N <<- NA
+      nls <<- NA
       #print(cond)
     })
-  return(list(lagN = lagN, nlsres = nlsres))
+  return(list(lag_N = lag_N, nls = nls))
 }
 
 
 
-#' Calculate.Lag.Fitting.To.Baranyi.With.Lag
-#' 
+#' calc_lag_fit_to_baranyi_with_lag
+#'
 #' Runs nlsLM/nls algorithms with three different parameter setups to fit the best Logistic model parameters to our data and chooses the best model
-#' @param growthcurve data from one specific growth curve with these two columns: time and biomass
-#' @param N0 the initial biomass
-#' @param init.growth.rate initial value for the growth rate
-#' @param init.K initial value for the saturation parameter K
-#' @param init.lag initial value for the lag parameter
+#' @param gr_curve data from one specific growth curve with these two columns: time and biomass
+#' @param n0 the initial biomass
+#' @param init_gr_rate initial value for the growth rate
+#' @param init_K initial value for the saturation parameter K
+#' @param init_lag initial value for the lag parameter
 #' @param algorithm defaults to "auto" which chooses between bounded and unbounded Levenberg-Marquardt method and the bounded port method
-#' @param maxiter max. number of itertaions; defaults to 100
-#' @param lower.bound lower.bound for the bounded nls optimisation; defaults to 0
+#' @param max_iter max. number of itertaions; defaults to 100
+#' @param lower_bound lower.bound for the bounded nls optimisation; defaults to 0
 #' @returns lag and the nls fitting object with parameters fitted to logistic model
-Calculate.Lag.Fitting.To.Baranyi.With.Lag = function(growthcurve, LOG10N0 = NULL, init.lag = NULL, init.mumax = NULL, init.LOG10Nmax = NULL, algorithm = "auto", maxiter = 100, lower.bound = c(0,0,0, 0)) {
+calc_lag_fit_to_baranyi_with_lag <- function(gr_curve, LOG10N0 = NULL, init_lag = NULL, init_mumax = NULL, init_LOG10Nmax = NULL, algorithm = "auto", max_iter = 100, lower_bound = c(0,0,0, 0)) {
   tryCatch(
-    expr = 
+    expr =
       {if (algorithm == "auto") {
-          nlsres = Choose.Best.Lag.Fitting.Algorithm.Baranyi(growthcurve, 
-                                                             LOG10N0 = LOG10N0, 
-                                                             init.lag = init.lag, 
-                                                             init.mumax = init.mumax, 
-                                                             init.LOG10Nmax = init.LOG10Nmax, 
-                                                             maxiter = maxiter, 
-                                                             lower.bound = lower.bound)
-          
-          # nlsLM( is a more robust version of nls, using  Levenberg-Marquardt algorithm
-        } else if (algorithm == "Levenberg-Marquardt") {
-          nlsres = nlsLM(baranyi, growthcurve, 
-                         list(lag=init.lag, mumax=init.mumax, LOG10N0 = LOG10N0, LOG10Nmax = init.LOG10Nmax),
-                         control = nls.control(maxiter = maxiter))
-                        #lower= lower.bound)
-        } else if (algorithm == "port") {
-          nlsres = nls(baranyi, growthcurve, 
-                       list(lag=init.lag, mumax=init.mumax, LOG10N0 = LOG10N0, LOG10Nmax = init.LOG10Nmax),
-                       algorithm = "port", 
-                       control = nls.control(maxiter = maxiter))
-                      #lower= lower.bound)
-        } else {
-          nlsres = nls(baranyi, growthcurve, 
-                       list(lag=init.lag, mumax=init.mumax, LOG10N0 = LOG10N0, LOG10Nmax = init.LOG10Nmax),
-                       algorithm = algorithm, 
-                       control = nls.control(maxiter = maxiter))
-        }
-          lagN = coef(nlsres)[names(coef(nlsres)) == "lag"] %>% unname()
-    },
-    error=function(cond) {
-      lagN <<- NA
-      nlsres <<- NA
+        nls <- choose_lag_fit_algorithm_baranyi(gr_curve,
+                                                           LOG10N0 = LOG10N0,
+                                                           init_lag = init_lag,
+                                                           init_mumax = init_mumax,
+                                                           init_LOG10Nmax = init_LOG10Nmax,
+                                                           max_iter = max_iter,
+                                                           lower_bound = lower_bound)
+
+        # nlsLM( is a more robust version of nls, using  Levenberg-Marquardt algorithm
+      } else if (algorithm == "Levenberg-Marquardt") {
+        nls <- nls_LM(baranyi, gr_curve,
+                       list(lag=init_lag, mumax=init_mumax, LOG10N0 = LOG10N0, LOG10Nmax = init_LOG10Nmax),
+                       control = nls_control(max_iter = max_iter))
+        #lower= lower.bound)
+      } else if (algorithm == "port") {
+        nls <- nls(baranyi, gr_curve,
+                     list(lag=init_lag, mumax=init_mumax, LOG10N0 = LOG10N0, LOG10Nmax = init_LOG10Nmax),
+                     algorithm = "port",
+                     control = nls_control(max_iter = max_iter))
+        #lower= lower.bound)
+      } else {
+        nls <- nls(baranyi, gr_curve,
+                     list(lag=init_lag, mumax=init_mumax, LOG10N0 = LOG10N0, LOG10Nmax = init_LOG10Nmax),
+                     algorithm = algorithm,
+                     control = nls_control(max_iter = max_iter))
+      }
+        lag_N <- coef(nls)[names(coef(nls)) == "lag"] %>% unname()
+      },
+    error = function(cond) {
+      lag_N <<- NA
+      nls <<- NA
     })
-  return(list(lagN = lagN, nlsres = nlsres))
+  return(list(lag_N = lag_N, nls = nls))
 }
 
 
 
-#' Get.Initial.Parameters.Logistic
-#' 
+#' get_init_pars_logistic
+#'
 #' Finds reasonable approximation for logistic growth curve parameters (K, lag. growth rate) based on the growth curve and some initial values
-#' These approximations will be used as the initial values for the proper optimisation algorithm run later.
+#' These approximations will be used as the initial values for the proper optimization algorithm run later.
 #' @param data_this_curve data from one specific growth curve with these two columns: time and biomass
-#' @param this.N0 the initial biomass
-#' @param init.K initial value for the saturation parameter K
-#' @param init.lag initial value for the lag parameter
-#' @param init.growth.rate initial value for the growth rate
-#' @param minb defaults to 0.2; mina and minb define where to look for exponential phase: it will be where the biomass is between min + (max-min)*(mina TO minb)
-#' @param mina defaults to 0.8
-#' @returns list of parameters: init.K, init.lag, init.growth.rate, 
-Get.Initial.Parameters.Logistic = function(data_this_curve, this.N0, init.K, init.lag, init.growth.rate, minb = 0.2, maxb = 0.8) {
-  if (is.null(init.K)) {
-    max.this.data = max(data_this_curve$biomass, na.rm = TRUE)
-    init.K = max.this.data %>% as.numeric()
+#' @param this_n0 the initial biomass
+#' @param init_K initial value for the saturation parameter K
+#' @param init_lag initial value for the lag parameter
+#' @param init_gr_rate initial value for the growth rate
+#' @param min_b defaults to 0.2; mina and minb define where to look for exponential phase: it will be where the biomass is between min + (max-min)*(min_a TO min_b)
+#' @param min_a defaults to 0.8
+#' @returns list of parameters: init_K, init_lag, init_gr_rate,
+get_init_pars_logistic = function(data_this_curve, this_n0, init_K, init_lag, init_gr_rate, min_b = 0.2, min_a = 0.8) {
+  if (is.null(init_K)) {
+    max_this_data <- max(data_this_curve$biomass, na.rm = TRUE)
+    init_K <- max_this_data %>% as.numeric()
   }
-  if (is.null(init.lag)) {
-    init.lag = Calculate.Lag(data_this_curve, method = "exponential",pars = Get.default.parameters()) %>% pull(lag) %>% unique() %>% as.numeric()
+  if (is.null(init_lag)) {
+    init_lag <- calc_lag(data_this_curve, method = "exponential",pars = get_def_pars()) %>% pull(lag) %>% unique() %>% as.numeric()
   }
-  
-  if (is.null(init.growth.rate)) {
-    data_this_curve_exponential = data_this_curve %>%
+
+  if (is.null(init_gr_rate)) {
+    data_this_curve_exp <- data_this_curve %>%
       mutate(
-        max.biomass = max(data_this_curve$biomass),
-        min.threshold = this.N0 + minb*(max.biomass - this.N0),
-        max.threshold = this.N0 + maxb*(max.biomass - this.N0)) %>%
+        max_biomass = max(data_this_curve$biomass),
+        min_threshold = this_n0 + min_b*(max_biomass - this_n0),
+        max_threshold = this_n0 + min_a*(max_biomass - this_n0)) %>%
       # take only the points that are in between min and max
-      filter(biomass <= max.threshold & biomass >= min.threshold)
-    data_this_curve_exponential$logdata = log(data_this_curve_exponential$biomass/this.N0)
-    if (nrow(data_this_curve_exponential %>% filter(!is.na(time) & !is.na(logdata)) > 0)) {
-      mod = lm(logdata ~ time, data = data_this_curve_exponential)
-      # this growth rate is assumig an exponential model so it will be generally underestimated
-      init.growth.rate = mod$coefficients[2] %>% unname()
+      filter(biomass <= max_threshold & biomass >= min_threshold)
+    data_this_curve_exp$logdata = log(data_this_curve_exp$biomass/this_n0)
+    if (nrow(data_this_curve_exp %>% filter(!is.na(time) & !is.na(logdata)) > 0)) {
+      mod = lm(logdata ~ time, data = data_this_curve_exp)
+      # this growth rate is assuming an exponential model so it will be generally underestimated
+      init_gr_rate = mod$coefficients[2] %>% unname()
       # we have real r = r(1-N/K) so let us take
-      Nmid = median(data_this_curve_exponential$biomass)
-      init.growth.rate = init.growth.rate/(1-Nmid/init.K)
+      n_mid = median(data_this_curve_exp$biomass)
+      init_gr_rate = init_gr_rate/(1-n_mid/init_K)
     } else {
-      init.growth.rate = 0.1
+      init_gr_rate = 0.1
     }
-    #data_this_curve_exponential$predicted = predict(mod, data_this_curve_exponential)
+    #data_this_curve_exp$predicted = predict(mod, data_this_curve_exp)
   }
-  return(list(init.K = init.K, init.lag = init.lag, init.growth.rate = init.growth.rate))
+  return(list(init_K = init_K, init_lag = init_lag, init_gr_rate = init_gr_rate))
 }
 
 
 
-#' Calculate.Lagistic.Fit.Lag
-#' 
-#' Calculates lag based on fitting logistic model to data 
+#' calc_lagistic_fit_lag
+#'
+#' Calculates lag based on fitting logistic model to data
 #' @param data a data frame with two required columns names: "time" and "biomass",and one optional column: "curve_id"
 #' This is data from may come from multiple growth curves
-#' @param N0 a data frame describing initial biomass for each of the curves, i.e. it has two obligatory columns: "curve_id", "N0"
-#' @param init.growth.rate initial value for the growth rate, defaults to NULL in which case it will be approximated based on the data
-#' @param init.K initial value for the saturation parameter K, defaults to NULL in which case it will be approximated based on the data
-#' @param init.lag initial value for the lag parameter, defaults to NULL in which case it will be approximated based on the data
+#' @param n0 a data frame describing initial biomass for each of the curves, i.e. it has two obligatory columns: "curve_id", "N0"
+#' @param init_gr_rate initial value for the growth rate, defaults to NULL in which case it will be approximated based on the data
+#' @param init_K initial value for the saturation parameter K, defaults to NULL in which case it will be approximated based on the data
+#' @param init_lag initial value for the lag parameter, defaults to NULL in which case it will be approximated based on the data
 #' @param algorithm eg. "auto", "Levenberg-Marquardt", "port"
-#' @param maxiter Maximum number of iterations
-#' @param return.all.params defaults to FALSE, TRUE if you also want to get K and growth.rate apart from lag
-#' @param low.bound.for.gr defaults to 0.2; mina and minb define where to look for exponential phase: it will be where the biomass is between min + (max-min)*(lower.bound.for.gr TO upper.bound.for.gr)
-#' @param upper.bound.for.gr defaults to 0.8
+#' @param max_iter Maximum number of iterations
+#' @param return_all_params defaults to FALSE, TRUE if you also want to get K and growth.rate apart from lag
+#' @param min_b defaults to 0.2; mina and minb define where to look for exponential phase: it will be where the biomass is between min + (max-min)*(lower.bound.for.gr TO upper.bound.for.gr)
+#' @param min_a defaults to 0.8
 #' @returns growth curve data with additional columns  ('lag', and predicted biomass 'predicted'), and the fitting object if return.all.params was set to TRUE
-Calculate.Lagistic.Fit.Lag = function(data, N0, init.growth.rate = NULL, init.K = NULL, init.lag = NULL, algorithm, maxiter, return.all.params = FALSE,
-                                      low.bound.for.gr = 0.2, upper.bound.for.gr = 0.8) {
+calc_lagistic_fit_lag = function(data, n0, init_gr_rate = NULL, init_K = NULL, init_lag = NULL, algorithm, max_iter, return_all_params = FALSE,
+                                      min_b = 0.2, min_a = 0.8) {
   if (!("curve_id" %in% names(data))) {
     data$curve_id = NA
   }
 
-  i=0
-  fiting.list = list()
-  data.new = data %>% filter(FALSE) %>% mutate( time = numeric(0), biomass = numeric(0),curve_id = character(0), lag = numeric(0), log.info = character(0))
+  i <- 0
+  fiting_list <- list()
+  data_new <- data %>% filter(FALSE) %>% mutate( time = numeric(0), biomass = numeric(0),curve_id = character(0), lag = numeric(0), log_info = character(0))
   for (this_curve_id in unique(data$curve_id)) {
-    i = i+1
-    data_this_curve = data %>% filter(curve_id == this_curve_id) %>% select(time, biomass, curve_id)
-    this.N0 = N0 %>% filter(curve_id == this_curve_id) %>% pull(N0)
-    initial.parameters = Get.Initial.Parameters.Logistic(data_this_curve, this.N0, init.K, init.lag, init.growth.rate)
-    this.fitting.object = Calculate.Lag.Fitting.To.Logistic.With.Lag(growthcurve = data_this_curve, 
-                                                          N0=this.N0, 
-                                                          init.growth.rate =initial.parameters$init.growth.rate, 
-                                                          init.K = initial.parameters$init.K, 
-                                                          init.lag = initial.parameters$init.lag, 
-                                                          algorithm =algorithm, 
-                                                          maxiter = maxiter)
-    data_this_curve = data_this_curve %>% 
-      mutate(lag = round(this.fitting.object$lagN,1))
-    data_this_curve$predicted = if (!any(is.na(this.fitting.object$nlsres))) {predict(this.fitting.object$nlsres, data_this_curve) } else {data_this_curve$predicted = NA}
-    data.new = rbind(data.new, data_this_curve)
-    
-    fiting.list[[i]] = this.fitting.object$nlsres
+    i <- i + 1
+    data_this_curve <- data %>% filter(curve_id == this_curve_id) %>% select(time, biomass, curve_id)
+    this_n0 <- n0 %>% filter(curve_id == this_curve_id) %>% pull(n0)
+    inint_pars <- get_init_pars_logistic(data_this_curve, this_n0, init_K, init_lag, init_gr_rate)
+    this_fit_obj <- calc_lag_fit_to_logistic_with_lag(gr_curve = data_this_curve,
+                                                                     n0 = this_n0,
+                                                                     init_gr_rate = init_pars$init_gr_rate,
+                                                                     init_K = init_pars$init_K,
+                                                                     init_lag = init_pars$init_lag,
+                                                                     algorithm = algorithm,
+                                                                     max_iter = max_iter)
+    data_this_curve <- data_this_curve %>%
+      mutate(lag = round(this_fit_obj$lag_N, 1))
+    data_this_curve$predicted = if (!any(is.na(this_fit_obj$nls))) {predict(this_fit_obj$nls, data_this_curve) } else {data_this_curve$predicted = NA}
+    data_new <- rbind(data_new, data_this_curve)
+
+    fiting_list[[i]] <- this_fit_obj$nls
   }
- 
-  if (!return.all.params) {
-  return(data.new)
+
+  if (!return_all_params) {
+    return(data_new)
   } else {
-  return(list(data.new = data.new, modfit = fiting.list))  
+    return(list(data_new = data_new, mod_fit = fiting_list))
   }
 }
- 
 
 
-#' Get.Initial.Parameters.Baranyi
-#' 
-#' Finds reasonable approximation for baranyi growth curve parameters (init.mumax, lag) based on the growth curve and some initial values
-#' These approximations will be used as the initial values for the proper optimisation algorithm run later.
+
+#' get_init_pars_baranyi
+#'
+#' Finds reasonable approximation for baranyi growth curve parameters (init_mumax, lag) based on the growth curve and some initial values
+#' These approximations will be used as the initial values for the proper optimization algorithm run later.
 #' @param data_this_curve data from one specific growth curve with these two columns: time and biomass
-#' @param this.N0 the initial biomass
-#' @param init.lag initial value for the lag parameter
-#' @param init.growth.rate initial value for the growth rate
-#' @param minb defaults to 0.2; mina and minb define where to look for exponential phase: it will be where the biomass is between min + (max-min)*(mina TO minb)
-#' @param mina defaults to 0.8
-#' @returns list of parameters: init.mumax, init.lag
-Get.Initial.Parameters.Baranyi = function(data_this_curve, this.N0, init.lag, init.growth.rate, minb = 0.2, mina = 0.8) {
-  if (is.null(init.lag)) {
-    init.lag = Calculate.Lag(data_this_curve, method = "exponential",pars = Get.default.parameters()) %>% pull(lag) %>% unique() %>% as.numeric()
+#' @param this_n0 the initial biomass
+#' @param init_lag initial value for the lag parameter
+#' @param init_gr_rate initial value for the growth rate
+#' @param min_b defaults to 0.2; mina and minb define where to look for exponential phase: it will be where the biomass is between min + (max-min)*(mina TO minb)
+#' @param min_a defaults to 0.8
+#' @returns list of parameters: init_mumax, init_lag
+get_init_pars_baranyi <- function(data_this_curve, this_n0, init_lag, init_gr_rate, min_b = 0.2, min_a = 0.8) {
+  if (is.null(init_lag)) {
+    init_lag <- calc_lag(data_this_curve, method = "exponential", pars = get_def_pars()) %>% pull(lag) %>% unique() %>% as.numeric()
   }
-  
-  if (is.null(init.growth.rate)) {
-    data_this_curve_exponential = data_this_curve %>%
+
+  if (is.null(init_gr_rate)) {
+    data_this_curve_exp <- data_this_curve %>%
       mutate(
-        max.biomass = max(biomass),
-        min.threshold = this.N0 + minb*(max.biomass - this.N0),
-        max.threshold = this.N0 + mina*(max.biomass - this.N0)) %>%
+        max_biomass = max(biomass),
+        min_threshold = this_n0 + min_b * (max_biomass - this_n0),
+        max_threshold = this_n0 + min_a * (max_biomass - this_n0)) %>%
       # take only the points that are in between min and max
-      filter(biomass <= max.threshold & biomass >= min.threshold)
-    data_this_curve_exponential$logdata = log(data_this_curve_exponential$biomass/this.N0)
-    if (nrow(data_this_curve_exponential %>% filter(!is.na(time) & !is.na(logdata))  > 0)) {
-      mod = lm(logdata ~ time, data = data_this_curve_exponential)
-      # this growth rate is assumig an exponential model so it will be generally underestimated
-      init.growth.rate = mod$coefficients[2] %>% unname()
+      filter(biomass <= max_threshold & biomass >= min_threshold)
+    data_this_curve_exp$logdata <- log(data_this_curve_exp$biomass/this_n0)
+    if (nrow(data_this_curve_exp %>% filter(!is.na(time) & !is.na(logdata))  > 0)) {
+      mod <- lm(logdata ~ time, data = data_this_curve_exp)
+      # this growth rate is assuming an exponential model so it will be generally underestimated
+      init_gr_rate <- mod$coefficients[2] %>% unname()
       # we have real r = r(1-N/K) so let us take
-      Nmid = median(data_this_curve_exponential$biomass)
-      init.mumax = init.growth.rate
+      n_mid <- median(data_this_curve_exp$biomass)
+      init_mumax <- init_gr_rate
     } else {
-      init.mumax = 0.1
+      init_mumax <- 0.1
     }
   } else {
-    init.mumax = init.growth.rate
+    init_mumax <- init_gr_rate
   }
-  return(list(init.mumax = init.mumax, init.lag = init.lag))
+  return(list(init_mumax = init_mumax, init_lag = init_lag))
 }
 
 
 
-#' Calculate.Baranyi.Fit.Lag
-#' 
-#' Calculates lag based on fitting baranyi model to data 
+#' calc_baranyi_fit_lag
+#'
+#' Calculates lag based on fitting baranyi model to data
 #' @param data a data frame with two required columns names: "time" and "biomass",and one optional column: "curve_id"
 #' This is data from may come from multiple growth curves
-#' @param N0 a data frame describing initial biomass for each of the curves, i.e. it has two obligatory columns: "curve_id", "N0"
-#' @param init.lag initial value for the lag parameter, defaults to NULL in which case it will be approximated based on the data
-#' @param init.growth.rate initial value for the growth rate, defaults to NULL in which case it will be approximated based on the data
+#' @param n0 a data frame describing initial biomass for each of the curves, i.e. it has two obligatory columns: "curve_id", "N0"
+#' @param init_lag initial value for the lag parameter, defaults to NULL in which case it will be approximated based on the data
+#' @param init_gr_rate initial value for the growth rate, defaults to NULL in which case it will be approximated based on the data
 #' @param algorithm eg. "auto", "Levenberg-Marquardt", "port", defaults to "auto"
-#' @param maxiter Maximum number of iterations, defaults to 100
+#' @param max_iter Maximum number of iterations, defaults to 100
 #' @returns growth curve data with additional columns  ('lag', and predicted biomass 'predicted')
-Calculate.Baranyi.Fit.Lag = function(data, N0, init.lag = NULL, init.growth.rate = NULL, algorithm = "auto", maxiter = 100) {
-  data.new = data %>% filter(FALSE) %>% mutate(lag = numeric(0), predicted = numeric(0))
+calc_baranyi_fit_lag <- function(data, n0, init_lag = NULL, init_gr_rate = NULL, algorithm = "auto", max_iter = 100) {
+  data_new <- data %>% filter(FALSE) %>% mutate(lag = numeric(0), predicted = numeric(0))
   for (this_curve_id in unique(data$curve_id)) {
-    data_this_curve = data %>% filter(curve_id == this_curve_id)
-    this.N0 = N0 %>% filter(curve_id == this_curve_id) %>% pull(N0)
-    
-    data_this_curve_for_model = data_this_curve %>%
+    data_this_curve <- data %>% filter(curve_id == this_curve_id)
+    this_n0 <- n0 %>% filter(curve_id == this_curve_id) %>% pull(n0)
+
+    data_this_curve_for_model <- data_this_curve %>%
       mutate(LOG10N = log10(biomass), t = time) %>%
       select(LOG10N, t)
-    init.LOG10N0 = log10(N0 %>% filter(curve_id == this_curve_id) %>% pull(N0))
-    init.LOG10Nmax = max(data_this_curve_for_model$LOG10N)
-    initial.parameters.baranyi = Get.Initial.Parameters.Baranyi(data_this_curve, this.N0, init.lag, init.growth.rate)
-    
-    fitting.object.this.curve = Calculate.Lag.Fitting.To.Baranyi.With.Lag(growthcurve = data_this_curve_for_model, 
-                                                                          LOG10N0 = init.LOG10N0, 
-                                                                          init.lag = initial.parameters.baranyi$init.lag, 
-                                                                          init.mumax = initial.parameters.baranyi$init.mumax, 
-                                                                          init.LOG10Nmax = init.LOG10Nmax,
-                                                                          algorithm = algorithm, 
-                                                                          maxiter = maxiter, 
-                                                                          lower.bound = c(0,0,0, 0))
-    data_this_curve = data_this_curve %>%
-      mutate(lag = round(fitting.object.this.curve$lagN,1))
-    data_this_curve$predicted = if (!any(is.na(fitting.object.this.curve$nlsres))) {10^(predict(fitting.object.this.curve$nlsres, data_this_curve)) } else {data_this_curve$predicted = NA}
-    data.new = rbind(data.new, data_this_curve)
+    init_LOG10N0 <- log10(n0 %>% filter(curve_id == this_curve_id) %>% pull(n0))
+    init_LOG10Nmax <- max(data_this_curve_for_model$LOG10N)
+    initial_pars_baranyi <- get_init_pars_baranyi(data_this_curve, this_n0, init_lag, init_gr_rate)
+
+    fit_obj_this_curve <- calc_lag_fit_to_baranyi_with_lag(gr_curve = data_this_curve_for_model,
+                                                                          LOG10N0 = init_LOG10N0,
+                                                                          init_lag = inint_pars_baranyi$init_lag,
+                                                                          init_mumax = inint_pars_baranyi$init_mumax,
+                                                                          init_LOG10Nmax = init_LOG10Nmax,
+                                                                          algorithm = algorithm,
+                                                                          max_iter = max_iter,
+                                                                          lower_bound = c(0,0,0, 0))
+    data_this_curve <- data_this_curve %>%
+      mutate(lag = round(fit_obj_this_curve$lag_N,1))
+    data_this_curve$predicted <- if (!any(is.na(fit_obj_this_curve$nls))) {10^(predict(fit_obj_this_curve$nls, data_this_curve)) } else {data_this_curve$predicted = NA}
+    data_new = rbind(data_new, data_this_curve)
   }
-  return(data.new)
+  return(data_new)
 }
 
 
 
-#' Plot.Data
-#' 
-#' Plots the provided growth curve (one single growth curve) on logaritmic scale
-#' @param data.new a data frame with two required columns names: "time" and "biomass"
+#' plot_data
+#'
+#' Plots the provided growth curve (one single growth curve) on logarithmic scale
+#' @param data_new a data frame with two required columns names: "time" and "biomass"
 #' @returns ggplot object with a growth curve
-Plot.Data = function(data.new) {
-  data.new = data.new %>%
-    mutate(log10.biomass = log10(biomass))
-  g = ggplot(data.new)  + 
-    geom_line(aes(x= time, y = log10.biomass), col = "blue") +
-    geom_point(aes(x= time, y = log10.biomass), col = "blue") +
+plot_data <- function(data_new) {
+  data_new <- data_new %>%
+    mutate(log10_biomass = log10(biomass))
+  g <- ggplot(data_new)  +
+    geom_line(aes(x = time, y = log10_biomass), col = "blue") +
+    geom_point(aes(x = time, y = log10_biomass), col = "blue") +
     xlab("time [h]") +
     ylab("Log10(biomass)") +
-    theme(axis.text.y.right=element_text(colour="black"),
-          axis.text.y=element_text(colour="blue"),
-          axis.title.y=element_text(colour="blue"),
-          axis.title.y.right=element_text(colour="black"))    
-   return(g)
-  
+    theme(axis.text.y.right = element_text(colour="black"),
+          axis.text.y = element_text(colour="blue"),
+          axis.title.y = element_text(colour="blue"),
+          axis.title.y.right = element_text(colour="black"))
+  return(g)
+
 }
 
 
 
 ############################################# exported functions #########################################
-#' Fit.Exponential.Lag
-#' 
-#' Fits the lag to multiple growth curves based on the basic tangent method 
+#' fit_exp_lag
+#'
+#' Fits the lag to multiple growth curves based on the basic tangent method
 #' @param data a data frame with two required columns names: "time" and "biomass",and one optional column: "curve_id"
 #' This is data from may come from multiple growth curves
-#' @param tangent.method "local.regression" (if the tangent is fitted to a number of points around the maximal growth rate) 
+#' @param tangent_method "local.regression" (if the tangent is fitted to a number of points around the maximal growth rate)
 #' or "to.point" (if the tangent is fitted only to the point where the growth rate is maximal); defaults to "to.point"
-#' @param N0 the initial biomass (a tangent line crossing N0 line will determine the lag)
-#' @param n.points.in.curve if tangent.method = "local.regression" then n.points.in.curve is the number of points the line is fitted to; 
+#' @param n0 the initial biomass (a tangent line crossing N0 line will determine the lag)
+#' @param curve_points if tangent_method = "local.regression" then curve_points is the number of points the line is fitted to;
 #' defaults to 3 i.e. the point with the maximal uptake rate one point before and one point aftter
 #' @returns growth curve data (as input) together with additional columns: lag, line.intercept and line.slope
 #' @export
-Fit.Exponential.Lag = function(data, tangent.method, N0, n.points.in.curve = 3) {
+fit_exp_lag <- function(data, tangent_method, n0, curve_points = 3) {
   if (!("curve_id" %in% names(data))) {
     data$curve_id = NA
   }
-  data.new = data %>% filter(FALSE) %>% mutate(lag = numeric(0),line.intercept = numeric(0), line.slope = numeric(0))
+  data_new <- data %>% filter(FALSE) %>% mutate(lag = numeric(0),line_intercept = numeric(0), line_slope = numeric(0))
   for (this_curve_id in unique(data$curve_id)) {
-    data_this_curve = data %>% filter(curve_id == this_curve_id)
-    this.N0 = N0 %>% filter(curve_id == this_curve_id) %>% pull(N0)
-    lag.object = Fit.Exponential.Lag.To.Curve(data_this_curve, this.N0,tangent.method, n.points.in.curve)
-    data_this_curve = data_this_curve %>% 
-      mutate(lag = round(lag.object$lag,1)) %>%
-      mutate(line.intercept = lag.object$line.intercept,
-             line.slope = lag.object$line.slope) %>%
-      left_join(lag.object$tangent.points)
-    data.new = rbind(data.new, data_this_curve)
+    data_this_curve <- data %>% filter(curve_id == this_curve_id)
+    this_n0 <- n0 %>% filter(curve_id == this_curve_id) %>% pull(n0)
+    lag_obj <- fit_exp_lag_to_curve(data_this_curve, this_n0, tangent_method, curve_points)
+    data_this_curve <- data_this_curve %>%
+      mutate(lag = round(lag_obj$lag,1)) %>%
+      mutate(line_intercept = lag_obj$line_intercept,
+             line_slope = lag_obj$line_slope) %>%
+      left_join(lag_obj$tangent_points)
+    data_new <- rbind(data_new, data_this_curve)
   }
-  
-  data.new$predicted = NA
+
+  data_new$predicted <- NA
   # data.new has columns with lag, intercept, slope, log.N0
-  return(data.new)
+  return(data_new)
 }
 
 
 
-#' Lag.Based.On.Biomass.Increase
-#' 
+#' lag_biomass_incr
+#'
 #' Fits the lag to multiple growth curves based on the biomass increase method
 # It Find where biomass increases by a predefined threshold from N0
 #' @param data a data frame with two required columns names: "time" and "biomass",and one optional column: "curve_id"
 #' This is data from may come from multiple growth curves
-#' @param threshold A value of the biomass increase that we can surely associate with the end of the lag phase rather than random variation durin the lag
-#' @param N0 the initial biomass (lag will be defined as the time point where the difference bwteem  biomass and N0 reaches a predefined threshold)
+#' @param threshold A value of the biomass increase that we can surely associate with the end of the lag phase rather than random variation during the lag
+#' @param n0 the initial biomass (lag will be defined as the time point where the difference between biomass and N0 reaches a predefined threshold)
 #' @returns growth curve data (as input) together with additional columns: N0, increase.from.N0, lag
 #' @export
-Lag.Based.On.Biomass.Increase = function(data, threshold, N0) {
-  data.new = data %>% filter(FALSE) %>% mutate(lag = numeric(0))
+lag_biomass_incr <- function(data, threshold, n0) {
+  data_new <- data %>% filter(FALSE) %>% mutate(lag = numeric(0))
   for (this_curve_id in unique(data$curve_id)) {
-    data_this_curve = data %>% 
-      filter(curve_id == this_curve_id) %>% 
-      left_join(N0, by = "curve_id") %>%
-      mutate(increase.from.N0 = biomass - N0)
-    
-    
+    data_this_curve <- data %>%
+      filter(curve_id == this_curve_id) %>%
+      left_join(n0, by = "curve_id") %>%
+      mutate(incr_from_n0 = biomass - n0)
+
+
     #find where second derivative is maximal
-    diff.above.threshold = which(data_this_curve$increase.from.N0 >= threshold)
-    first.diff.above.threshold = diff.above.threshold[1]
-    lag.this.curve = data_this_curve$time[first.diff.above.threshold]
-    data_this_curve = data_this_curve %>%
+    threshold_diff <- which(data_this_curve$incr_from_n0 >= threshold)
+    first_threshold_diff <- threshold_diff[1]
+    lag_this_curve <- data_this_curve$time[first_threshold_diff]
+    data_this_curve <- data_this_curve %>%
       mutate(
-        lag = round(lag.this.curve,1))
-    data.new = rbind(data.new, data_this_curve)
+        lag = round(lag_this_curve,1))
+    data_new <- rbind(data_new, data_this_curve)
   }
-  return(data.new)
+  return(data_new)
 }
 
 
 
-#' Fit.Max.Inflection.Lag
-#' 
+#' fit_max_infl_lag
+#'
 #' Fits the lag to multiple growth curves based on the max growth acceleration method
 #' It finds where the second derivative is the largest
 #' @param data a data frame with two required columns names: "time" and "biomass",and one optional column: "curve_id"
 #' This is data from may come from multiple growth curves
 #' @returns growth curve data (as input) together with additional columns: lag, log.biomass, time.diff, time.av, second.deriv.b, biomass.increase
 #' @export
-Fit.Max.Inflection.Lag = function(data) {
+fit_max_infl_lag <- function(data) {
   #deriv <- function(t, x) diff(x) / diff(t)
   #middle_pts <- function(x) x[-1] - diff(x) / 2
   #second_deriv <- function(t,x) deriv(middle_pts(t), deriv(t, x))
-  data.new = data %>% filter(FALSE) %>% mutate(log.biomass = numeric(0), diff = numeric(0), lag = numeric(0))
+  data_new <- data %>% filter(FALSE) %>% mutate(log_biomass = numeric(0), diff = numeric(0), lag = numeric(0))
   for (this_curve_id in unique(data$curve_id)) {
-    data_this_curve = data %>% 
+    data_this_curve <- data %>%
       filter(curve_id == this_curve_id) %>%
       arrange(time) %>%
       as.data.frame() %>%
-      mutate(log.biomass = log(biomass), 
-             time.diff = mean(c(diff(time), diff(dplyr::lag(time))), na.rm = TRUE),
-             time.av = (time + dplyr::lag(time))/2) %>%
+      mutate(log_biomass = log(biomass),
+             time_diff = mean(c(diff(time), diff(dplyr::lag(time))), na.rm = TRUE),
+             time_av = (time + dplyr::lag(time))/2) %>%
       mutate(
         #second.deriv.b = c(NA,second_deriv(time, log.biomass), NA),
         # central scheme
-        second.deriv.b = (dplyr::lead(log.biomass) + dplyr::lag(log.biomass) - 2*log.biomass)/time.diff^2,
-        # we only look at second derivative if we know the first derivative is positive! 
-        # In empirical data we sometimes see a decrease in biomass but we don;t want to look at the seconf derivative there!
-        biomass.increase=dplyr::lead(log.biomass)  > dplyr::lag(log.biomass)
-      ) 
-    
+        second_deriv_b = (dplyr::lead(log_biomass) + dplyr::lag(log_biomass) - 2 * log_biomass)/time_diff^2,
+        # we only look at second derivative if we know the first derivative is positive!
+        # In empirical data we sometimes see a decrease in biomass but we don;t want to look at the second derivative there!
+        biomass_incr = dplyr::lead(log_biomass)  > dplyr::lag(log_biomass)
+      )
+
     #find where second derivative is maximal
-    max.second.deriv.b = max(data_this_curve$second.deriv.b, na.rm=TRUE)
-    # take first point when max serivative if there are multiple
-    ind.max.second.deriv.b = which(data_this_curve$second.deriv.b == max.second.deriv.b)[1]
-    lag.this.curve = data_this_curve$time[ind.max.second.deriv.b]
-    data_this_curve = data_this_curve %>%
+    max_second_deriv_b <- max(data_this_curve$second_deriv_b, na.rm=TRUE)
+    # take first point when max derivative if there are multiple
+    ind_max_second_deriv_b <- which(data_this_curve$second_deriv_b == max_second_deriv_b)[1]
+    lag_this_curve <- data_this_curve$time[ind_max_second_deriv_b]
+    data_this_curve <- data_this_curve %>%
       mutate(
-        lag = round(lag.this.curve,1))
-    data.new = rbind(data.new, data_this_curve)
+        lag = round(lag_this_curve, 1))
+    data_new <- rbind(data_new, data_this_curve)
   }
-  return(data.new)
+  return(data_new)
 }
 
 
 
-#' Plot.Lag.Fit
-#' 
+#' plot_lag_fit
+#'
 #' Plots the provided growth curve (one single growth curve) together with the calculated lag and and the rationale for lag calculation
-#' @param data.new a data frame output by Calculate.Lag function: it needs to have the following columns: "time", "biomass", "tangent.point", "predicted.data", "threshold", "N0", "second.deriv.b", "line.intercept", "line.slope"
-#' @param print.lag.info if set to "TRUE" prints the lag length on the graph
+#' @param data_new a data frame output by Calculate.Lag function: it needs to have the following columns: "time", "biomass", "tangent.point", "predicted.data", "threshold", "N0", "second.deriv.b", "line.intercept", "line.slope"
+#' @param print_lag_info if set to "TRUE" prints the lag length on the graph
 #' @returns ggplot object with a growth curve
 #' @export
-Plot.Lag.Fit = function(data.new, print.lag.info = TRUE) {
-  data.new = data.new %>%
+plot_lag_fit <- function(data_new, print_lag_info = TRUE) {
+  data_new <- data_new %>%
     group_by(curve_id) %>%
-    mutate(x.mid = mean(time),
-           lag.info = paste0("Lag = ", round(lag, 3), " [h]."),
-           log.biomass = log(biomass),
-           log.10.tangent.point = log10(tangent.point),
-           log.10.biomass = log10(biomass),
-           log.10.predicted = log10(predicted.data),
-           log.10.threshold = log10(threshold),
-           y.max.for.curve = max(log.10.biomass),
-           y.min.for.curve = min(log.10.biomass),
-           log10N0 = log10(exp(log(N0))),
-           text.y = 1.005*y.max.for.curve,
-           max.second.deriv.b = max(second.deriv.b, na.rm = TRUE),
-           min.second.deriv.b = min(second.deriv.b, na.rm = TRUE),
-           second.deriv.b.scaled = (second.deriv.b - min.second.deriv.b)/(max.second.deriv.b - min.second.deriv.b)*(y.max.for.curve - y.min.for.curve) + y.min.for.curve
+    mutate(x_mid = mean(time),
+           lag_info = paste0("Lag = ", round(lag, 3), " [h]."),
+           log_biomass = log(biomass),
+           log_10_tangent_point = log10(tangent_point),
+           log_10_biomass = log10(biomass),
+           log_10_predicted = log10(predicted_data),
+           log_10_threshold = log10(threshold),
+           y_max_for_curve = max(log_10_biomass),
+           y_min_for_curve = min(log_10_biomass),
+           log10N0 = log10(exp(log(n0))),
+           text_y = 1.005*y_max_for_curve,
+           max_second_deriv_b = max(second_deriv_b, na.rm = TRUE),
+           min_second_deriv_b = min(second_deriv_b, na.rm = TRUE),
+           second_deriv_b_scaled = (second_deriv_b - min_second_deriv_b)/(max_second_deriv_b - min_second_deriv_b)*(y_max_for_curve - y_min_for_curve) + y_min_for_curve
            #y.limit = 1.1*y.max.for.curve
-           ) %>%
+    ) %>%
     ungroup() %>%
-    mutate(min.log10N0 = min(log.10.biomass),
-           max.log10N0 = max(log.10.biomass),
-           log10.intercept = line.intercept/log(10),
-           log10.slope = line.slope/log(10))
-  
-  max.time = max(data.new$time)
-  
-  size.N0.line = 1
-  size.lag.line = 1
-  g = ggplot(data.new)  + 
-    geom_vline(aes(xintercept = lag), size = size.lag.line, col = "red", linetype = "dashed") +
-    geom_line(aes(x= time, y = log.10.biomass), col = "blue") +
+    mutate(min_log10N0 = min(log_10_biomass),
+           max_log10N0 = max(log_10_biomass),
+           log10_intercept = line_intercept/log(10),
+           log10_slope = line_slope/log(10))
+
+  max_time <- max(data_new$time)
+
+  size_n0_line <- 1
+  size_lag_line <- 1
+  g <- ggplot(data_new)  +
+    geom_vline(aes(xintercept = lag), size = size_lag_line, col = "red", linetype = "dashed") +
+    geom_line(aes(x = time, y = log_10_biomass), col = "blue") +
     #geom_point(aes(x= time, y = log10.biomass), col = "blue") +
-    geom_point(aes(x= time, y = log.10.tangent.point), col = "darkgreen", size = 2) +
-    geom_line(aes(x= time, y = log.10.predicted), col = "darkgreen") +
-    geom_line(aes(x= time, y = log.10.threshold), col = "darkgreen") +
-    geom_line(aes(x=time, y = second.deriv.b.scaled), col = "darkgreen", alpha = 0.5) +
-    geom_hline(aes(yintercept = log10N0), size = size.N0.line, col = "black") +
-    geom_abline(aes(intercept = log10.intercept, slope = log10.slope), col = "darkgreen") + 
+    geom_point(aes(x = time, y = log_10_tangent_point), col = "darkgreen", size = 2) +
+    geom_line(aes(x = time, y = log_10_predicted), col = "darkgreen") +
+    geom_line(aes(x = time, y = log_10_threshold), col = "darkgreen") +
+    geom_line(aes(x = time, y = second_deriv_b_scaled), col = "darkgreen", alpha = 0.5) +
+    geom_hline(aes(yintercept = log10N0), size = size_n0_line, col = "black") +
+    geom_abline(aes(intercept = log10_intercept, slope = log10_slope), col = "darkgreen") +
     xlab("time [h]") +
-    xlim(c(0, max.time)) +
-    ylab("Log10(biomass)") + 
+    xlim(c(0, max_time)) +
+    ylab("Log10(biomass)") +
     #ylim(c(min(data.new$log.10.biomass), max(data.new$log.10.biomass))) +
-    facet_grid(curve_id~lag.calculation.method, scales = "free_y") +
-  theme(axis.text.y.right=element_text(colour="black"),
-          axis.text.y=element_text(colour="blue"),
-          axis.title.y=element_text(colour="blue"),
-          axis.title.y.right=element_text(colour="black"))    
-  
-  if (print.lag.info) {
-    g = g +  geom_text(aes(x=x.mid, y = text.y, label = lag.info), size = 6, col = "red")
+    facet_grid(curve_id ~ lag_calculation_method, scales = "free_y") +
+    theme(axis.text.y.right = element_text(colour = "black"),
+          axis.text.y = element_text(colour = "blue"),
+          axis.title.y = element_text(colour = "blue"),
+          axis.title.y.right = element_text(colour = "black"))
+
+  if (print_lag_info) {
+    g <- g +  geom_text(aes(x = x_mid, y = text_y, label = lag_info), size = 6, col = "red")
   }
   return(g)
 }
 
 
 
-#' Calculate.Lag
-#' 
+#' calc_lag
+#'
 #' The main function that calculates lags based on growth curve data, selected method and parameters
 #' @param data a data frame with two required columns names: "time" and "biomass",and one optional column: "curve_id"
 #' This is data from may come from multiple growth curves
-#' @param method method of lag calculation, choose one of the follwoing: "exponential", "biomass increase", "max growth acceleration", "parameter fitting to a model" 
+#' @param method method of lag calculation, choose one of the follwoing: "exponential", "biomass increase", "max growth acceleration", "parameter fitting to a model"
 #' @param pars a list of parameters. Get.default.parameters function can be used to get the default ones. Otherwise create your onwn list with the following names: \n
 #' - model: if method = "parameter fitting to a model" , one of the following models needs to be chosen: "logistic", "baranyi" \n
-#' - N0.method: first.observation" if the first point is taken as the initial biomass or 
-#' "minimal.observation" if the minimal biomass is taken is the initial point. 
-#' In "healthy" growth curves these options should be equivalent 
-#' but sometimes a drop in OD/biomass is observed at the beginning of a growth curve. 
+#' - n0_method: first.observation" if the first point is taken as the initial biomass or
+#' "minimal.observation" if the minimal biomass is taken is the initial point.
+#' In "healthy" growth curves these options should be equivalent
+#' but sometimes a drop in OD/biomass is observed at the beginning of a growth curve.
 #' In this case it is not obvious what to assume the initial biomass is. \n
-#' - tangent.method "local.regression" (if the tangent is fitted to a number of points around the maximal growth rate) 
+#' - tangent_method "local.regression" (if the tangent is fitted to a number of points around the maximal growth rate)
 #' or "to.point" (if the tangent is fitted only to the point where the growth rate is maximal); defaults to "to.point"
-#' - threshold: A value of the biomass increase that we can surely associate with the end of the lag phase rather than random variation durin the lag. defaults to 10^2 \n
-#' - n.points.in.curve: if tangent.method = "local.regression" then n.points.in.curve is the number of points the line is fitted to; 
-#' defaults to 3 i.e. the point with the maximal uptake rate one point before and one point aftter \n
-#' - init.growth.rate: if logistic model is fitted. Defaults to  NULL in which case the initial value will be based on the data \n
-#' - init.lag: if a logistic model is fitted, Defaults to NULL in which case the initial value will be based on the data \n
+#' - threshold: A value of the biomass increase that we can surely associate with the end of the lag phase rather than random variation durinh the lag. Defaults to 10^2 \n
+#' - curve_points: if tangent.method = "local.regression" then curve_points is the number of points the line is fitted to;
+#' defaults to 3 i.e. the point with the maximal uptake rate one point before and one point after \n
+#' - init_gr_rate: if logistic model is fitted. Defaults to  NULL in which case the initial value will be based on the data \n
+#' - init_lag: if a logistic model is fitted, Defaults to NULL in which case the initial value will be based on the data \n
 #' - algorithm: if method = "parameter fitting to a model", nls algorithm to run the model fit; defaults to "auto" which will choose the best between bounded and unbounded "Levenberg-Marquardt" and bounded "port" \n
-#' - maxiter =  if method = "parameter fitting to a model", the maximum number of nls iterations, defaults to  100
-#' @returns growth curve data (time, biomass, curve_id) with the following additional columns:  log.biomass, lag, line.slope, line.intercept, lag.calculation.method, predicted.data, diff, second.deriv.b, tangent.point, threshold
+#' - max_iter =  if method = "parameter fitting to a model", the maximum number of nls iterations, defaults to  100
+#' @returns growth curve data (time, biomass, curve_id) with the following additional columns:  log_biomass, lag, line_slope, line_intercept, lag_calc_method, predicted_data, diff, second_deriv_b, tangent_point, threshold
 #' @export
-Calculate.Lag = function(data, method, pars) {
+calc_lag <- function(data, method, pars) {
   if (!("curve_id" %in% names(data))) {
     data$curve_id = "growth.curve"
   }
-  
-  N0 = data %>%
+
+  n0 <- data %>%
     group_by(curve_id) %>%
     arrange(time) %>%
-    summarise(N0 = Get.N0(biomass, pars$N0.method)) %>%
+    summarise(n0 = get_n0(biomass, pars$n0_method)) %>%
     ungroup() %>%
-    mutate(log.N0 = log(N0))
+    mutate(log_n0 = log(n0))
 
-  
+
   if (method == "exponential") {
-    selected.tangent.method = pars$tangent.method
-    data.new = Fit.Exponential.Lag(data, 
-                                   N0 = N0,
-                                   tangent.method = selected.tangent.method,
-                                   n.points.in.curve = pars$n.points.in.curve)
-    data.new = data.new %>%
-      select(time, biomass, curve_id, lag, line.slope, line.intercept, tangent.point) %>%
-      mutate(lag.calculation.method = "exponential",
-             log.biomass = log(biomass),
-             predicted.data = NA,
+    sel_tangent_method <- pars$tangent_method
+    data_new <- fit_exp_lag(data,
+                                   n0 = n0,
+                                   tangent_method = sel_tangent_method,
+                                   curve_points = pars$curve_points)
+    data_new <- data_new %>%
+      select(time, biomass, curve_id, lag, line_slope, line_intercept, tangent_point) %>%
+      mutate(lag_calculation_method = "exponential",
+             log_biomass = log(biomass),
+             predicted_data = NA,
              diff = NA,
-             second.deriv.b = NA, 
+             second_deriv_b = NA,
              threshold = NA) %>%
-      select(time, biomass, log.biomass, curve_id, lag, line.slope, line.intercept, lag.calculation.method,predicted.data, diff, second.deriv.b, tangent.point, threshold)
-    
-    
+      select(time, biomass, log_biomass, curve_id, lag, line_slope, line_intercept, lag_calculation_method, predicted_data, diff, second_deriv_b, tangent_point, threshold)
+
+
   } else if (method == "biomass increase") {
-    selected.threshold = pars$threshold
-    data.new = Lag.Based.On.Biomass.Increase(data,
-                                             threshold = selected.threshold,
-                                             N0 = N0)
-    data.new = data.new %>% 
+    sel_threshold <- pars$threshold
+    data_new <- lag_biomass_incr(data,
+                                             threshold = sel_threshold,
+                                             n0 = n0)
+    data_new <- data_new %>%
       select(time, biomass, curve_id, lag) %>%
-      mutate(lag.calculation.method = "biomass increase",
-             log.biomass = log(biomass),
-             predicted.data = NA,
-             second.deriv.b = NA,
-             line.intercept = NA,
-             line.slope = NA,
-             tangent.point = NA,
+      mutate(lag_calculation_method = "biomass increase",
+             log_biomass = log(biomass),
+             predicted_data = NA,
+             second_deriv_b = NA,
+             line_intercept = NA,
+             line_slope = NA,
+             tangent_point = NA,
              diff = NA) %>%
-      left_join(N0, by = "curve_id") %>%
-      mutate(threshold = N0 + selected.threshold) %>%
-      select(time, biomass, log.biomass, curve_id, lag, line.slope, line.intercept, lag.calculation.method, predicted.data, diff, second.deriv.b, tangent.point, threshold)
-    
+      left_join(n0, by = "curve_id") %>%
+      mutate(threshold = n0 + sel_threshold) %>%
+      select(time, biomass, log_biomass, curve_id, lag, line_slope, line_intercept, lag_calculation_method, predicted_data, diff, second_deriv_b, tangent_point, threshold)
+
   } else if (method == "max growth acceleration") {
-    data.new =  Fit.Max.Inflection.Lag(data)
-    data.new = data.new %>%
-      select(time, biomass, log.biomass, curve_id, lag, second.deriv.b) %>%
-      mutate(lag.calculation.method = "max growth acceleration",
-             line.intercept = NA,
-             line.slope = NA,
-             predicted.data = NA,
+    data_new <-  fit_max_infl_lag(data)
+    data_new <- data_new %>%
+      select(time, biomass, log_biomass, curve_id, lag, second_deriv_b) %>%
+      mutate(lag_calculation_method = "max growth acceleration",
+             line_intercept = NA,
+             line_slope = NA,
+             predicted_data = NA,
              diff = NA,
-             tangent.point = NA,
+             tangent_point = NA,
              threshold= NA) %>%
-      select(time, biomass, log.biomass, curve_id, lag, line.slope, line.intercept, lag.calculation.method,predicted.data, diff, second.deriv.b, tangent.point, threshold)
+      select(time, biomass, log_biomass, curve_id, lag, line_slope, line_intercept, lag_calculation_method, predicted_data, diff, second_deriv_b, tangent_point, threshold)
+
   } else if (method == "parameter fitting to a model") {
-    selected.model = pars$model
-    if (selected.model == "logistic") {
-      data.new = Calculate.Lagistic.Fit.Lag(data, N0, 
-                                            init.growth.rate = pars$init.growth.rate, 
-                                            init.K = pars$init.K, 
-                                            init.lag = pars$init.lag,
+    sel_model <- pars$model
+    if (sel_model == "logistic") {
+      data_new <- calc_lagistic_fit_lag(data, n0,
+                                            init_gr_rate = pars$init_gr_rate,
+                                            init_K = pars$init_K,
+                                            init_lag = pars$init_lag,
                                             algorithm = pars$algorithm,
-                                            maxiter = pars$maxiter) 
-    } else if (selected.model == "baranyi") {
-      data.new = Calculate.Baranyi.Fit.Lag(data, 
-                                           N0, 
-                                           init.lag = pars$init.lag,
-                                           init.growth.rate = pars$init.growth.rate,
+                                            max_iter = pars$max_iter)
+
+    } else if (sel_model == "baranyi") {
+      data_new <- calc_baranyi_fit_lag(data,
+                                           n0,
+                                           init_lag = pars$init_lag,
+                                           init_gr_rate = pars$init_gr_rate,
                                            algorithm = pars$algorithm,
-                                           maxiter = pars$maxiter) %>%
-        mutate(lag.calculation.method = "Fitting lagged baranyi")
-        
+                                           max_iter = pars$max_iter) %>%
+        mutate(lag_calculation_method = "Fitting lagged baranyi")
+
     } else {
       error("model not implemented")
     }
-    data.new = data.new %>% 
-      select(time, biomass, curve_id, lag, predicted.data = predicted) %>%
-      mutate(lag.calculation.method = "parameter fitting to a model",
-             log.biomass = log(biomass),
+    data_new <- data_new %>%
+      select(time, biomass, curve_id, lag, predicted_data = predicted) %>%
+      mutate(lag_calculation_method = "parameter fitting to a model",
+             log_biomass = log(biomass),
              diff = NA,
-             second.deriv.b = NA,
-             line.intercept = NA,
-             line.slope = NA,
-             tangent.point = NA,
+             second_deriv_b = NA,
+             line_intercept = NA,
+             line_slope = NA,
+             tangent_point = NA,
              threshold = NA) %>%
-      select(time, biomass, log.biomass, curve_id, lag, line.slope, line.intercept, lag.calculation.method, predicted.data, diff, second.deriv.b, tangent.point, threshold)
-    
+      select(time, biomass, log_biomass, curve_id, lag, line_slope, line_intercept, lag_calculation_method, predicted_data, diff, second_deriv_b, tangent_point, threshold)
+
   }
-  data.new = data.new %>% 
-    left_join(N0)# %>%
+  data_new <- data_new %>%
+    left_join(n0)# %>%
   #data.new$lag[data.new$lag < 0] = 0
-  return(data.new) 
+  return(data_new)
 }
 
 
 
-#' Get.Lags.Calculated.By.All.Methods
-#' 
+#' get_all_methods_lag
+#'
 #' Runs the main function that calculates lags based on growth curve data based on all possible methods.
 #' @param data a data frame with two required columns names: "time" and "biomass",and one optional column: "curve_id"
 #' This is data from may come from multiple growth curves
-#' @param biomass.increase.threshold A value of the biomass increase that we can surely associate with the end of the lag phase rather than random variation durin the lag. 
-#' Needs to be set specificly to avoid unconcious use of the value set by default. If set to NULL, the value from pars will be taken 
-#' @param pars a list of parameters. defaults to the ones set by Get.default.parameters function. Otherwise create your onwn list with the following names: \n
+#' @param biomass_incr_threshold A value of the biomass increase that we can surely associate with the end of the lag phase rather than random variation during the lag.
+#' Needs to be set specifically to avoid unconscious use of the value set by default. If set to NULL, the value from pars will be taken
+#' @param pars a list of parameters. defaults to the ones set by get_def_pars function. Otherwise create your own list with the following names: \n
 #' - model: if method = "parameter fitting to a model" , one of the following models needs to be chosen: "logistic", "baranyi" \n
-#' - N0.method: first.observation" if the first point is taken as the initial biomass or 
-#' "minimal.observation" if the minimal biomass is taken is the initial point. 
-#' In "healthy" growth curves these options should be equivalent 
-#' but sometimes a drop in OD/biomass is observed at the beginning of a growth curve. 
+#' - n0_method: first.observation" if the first point is taken as the initial biomass or
+#' "minimal.observation" if the minimal biomass is taken is the initial point.
+#' In "healthy" growth curves these options should be equivalent
+#' but sometimes a drop in OD/biomass is observed at the beginning of a growth curve.
 #' In this case it is not obvious what to assume the initial biomass is. \n
-#' - tangent.method "local.regression" (if the tangent is fitted to a number of points around the maximal growth rate) 
+#' - tangent.method "local.regression" (if the tangent is fitted to a number of points around the maximal growth rate)
 #' or "to.point" (if the tangent is fitted only to the point where the growth rate is maximal); defaults to "to.point"
-#' - threshold: A value of the biomass increase that we can surely associate with the end of the lag phase rather than random variation durin the lag. defaults to 10^2 \n
-#' - n.points.in.curve: if tangent.method = "local.regression" then n.points.in.curve is the number of points the line is fitted to; 
-#' defaults to 3 i.e. the point with the maximal uptake rate one point before and one point aftter \n
-#' - init.growth.rate: if logistic model is fitted. Defaults to  NULL in which case the initial value will be based on the data \n
-#' - init.lag: if a logistic model is fitted, Defaults to NULL in which case the initial value will be based on the data \n
+#' - threshold: A value of the biomass increase that we can surely associate with the end of the lag phase rather than random variation during the lag. Defaults to 10^2 \n
+#' - curve_points: if tangent_method = "local.regression" then curve_points is the number of points the line is fitted to;
+#' defaults to 3 i.e. the point with the maximal uptake rate one point before and one point after \n
+#' - init_growth.rate: if logistic model is fitted. Defaults to  NULL in which case the initial value will be based on the data \n
+#' - init_lag: if a logistic model is fitted, Defaults to NULL in which case the initial value will be based on the data \n
 #' - algorithm: if method = "parameter fitting to a model", nls algorithm to run the model fit; defaults to "auto" which will choose the best between bounded and unbounded "Levenberg-Marquardt" and bounded "port" \n
-#' - maxiter =  if method = "parameter fitting to a model", the maximum number of nls iterations, defaults to  100
-#' @returns growth curve data (time, biomass, curve_id) with the column: lag.calculation.method, and with the following additional columns:  log.biomass, lag, line.slope, line.intercept, lag.calculation.method, predicted.data, diff, second.deriv.b, tangent.point, threshold \n
-#' Note that each growth curve will appear 
+#' - max_iter =  if method = "parameter fitting to a model", the maximum number of nls iterations, defaults to  100
+#' @returns growth curve data (time, biomass, curve_id) with the column: lag_calculation_method, and with the following additional columns:  log_biomass, lag, line_slope, line_intercept, lag_calculation_method, predicted_data, diff, second_deriv_b, tangent_point, threshold \n
+#' Note that each growth curve will appear
 #' @export
-Get.Lags.Calculated.By.All.Methods = function(data, biomass.increase.threshold, pars = NULL) {
+get_all_methods_lag <- function(data, biomass_incr_threshold, pars = NULL) {
   if (is.null(pars)) {
-    pars = Get.default.parameters()
+    pars <- get_def_pars()
   }
-  if (is.null(biomass.increase.threshold))  {
-  biomass.increase.threshold = pars$threshold
+  if (is.null(biomass_incr_threshold))  {
+    biomass_incr_threshold <- pars$threshold
   }
-  pars.logistic = pars
-  pars.logistic$model = "logistic"
-  data.new.logistic = Calculate.Lag(data = data, 
-                                    method = "parameter fitting to a model", 
-                                    pars = pars.logistic) %>%
-    mutate(lag.calculation.method = "par. fitting\nto logistic model")
-  
-  pars.baranyi = pars
-  pars.baranyi$model = "baranyi"
-  data.new.baranyi = Calculate.Lag(data = data, 
-                                   method = "parameter fitting to a model", 
-                                   pars = pars.baranyi) %>%
-    mutate(lag.calculation.method = "par. fitting\nto baranyi model")
-  
-  data.new.max.infl = Calculate.Lag(data = data, 
-                                    method = "max growth acceleration", 
+  pars_logistic <- pars
+  pars_logistic$model <- "logistic"
+  data_new_logistic <- calc_lag(data = data,
+                                    method = "parameter fitting to a model",
+                                    pars = pars_logistic) %>%
+    mutate(lag_calculation_method = "par. fitting\nto logistic model")
+
+  pars_baranyi <- pars
+  pars_baranyi$model <- "baranyi"
+  data_new_baranyi <- calc_lag(data = data,
+                                   method = "parameter fitting to a model",
+                                   pars = pars_baranyi) %>%
+    mutate(lag_calculation_method = "par. fitting\nto baranyi model")
+
+  data_new_max_infl <- calc_lag(data = data,
+                                    method = "max growth acceleration",
                                     pars = pars) %>%
-    mutate(lag.calculation.method = "max\ngrowth acceleration")
-  
-  pars.to.point = pars
-  pars.to.point$tangent.method = "to.point"
-  data.new.expo = Calculate.Lag(data = data, 
+    mutate(lag_calculation_method = "max\ngrowth acceleration")
+
+  pars_to_point <- pars
+  pars_to_point$tangent_method <- "to.point"
+  data_new_exp <- calc_lag(data = data,
                                 method = "exponential",
-                                pars= pars.to.point
-                                ) %>%
-    mutate(lag.calculation.method = "tangent to \nmax growth point")
-  
-  pars.local.regr = pars
-  pars.local.regr$tangent.method = "local.regression"
-  data.new.expo2 = Calculate.Lag(data = data, 
+                                pars = pars_to_point
+  ) %>%
+    mutate(lag_calculation_method = "tangent to \nmax growth point")
+
+  pars_local_regr <- pars
+  pars_local_regr$tangent_method <- "local.regression"
+  data_new_exp2 <- calc_lag(data = data,
                                  method = "exponential",
-                                 pars = pars.local.regr)%>%
-    mutate(lag.calculation.method = "tangent to \nmax growth line")
-  
-  pars$threshold = biomass.increase.threshold
-  data.new.biominc =  Calculate.Lag(data = data, 
+                                 pars = pars_local_regr)%>%
+    mutate(lag_calculation_method = "tangent to \nmax growth line")
+
+  pars$threshold <- biomass_incr_threshold
+  data_new_biominc <-  calc_lag(data = data,
                                     method = "biomass increase",
-                                    pars=pars)%>%
-    mutate(lag.calculation.method = "biomass \nincrease")
-  
-  
-  data.all.with.lag = data.new.max.infl %>%
-    rbind(data.new.expo) %>%
-    rbind(data.new.expo2) %>%
-    rbind(data.new.biominc) %>%
-    rbind(data.new.baranyi) %>%
-    rbind(data.new.logistic)
-  
-  data.all.with.lag$lag[data.all.with.lag$lag < 0] = NA
-  return(data.all.with.lag)
+                                    pars = pars)%>%
+    mutate(lag_calculation_method = "biomass \nincrease")
+
+
+  data_all_with_lag <- data_new_max_infl %>%
+    rbind(data_new_exp) %>%
+    rbind(data_new_exp2) %>%
+    rbind(data_new_biominc) %>%
+    rbind(data_new_baranyi) %>%
+    rbind(data_new_logistic)
+
+  data_all_with_lag$lag[data_all_with_lag$lag < 0] = NA
+  return(data_all_with_lag)
 }
 
 
 
 
-#' Get.default.parameters
-#' Set defaults parameters used by Calculate.Lag function
+#' get_def_pars
+#' Set defaults parameters used by calc_lag function
 #' @returns list of parameters
 #' @export
-Get.default.parameters = function() {
-  pars = list(model = "logistic",
-              N0.method = "first.observation",
-              tangent.method = "local.regression",
+get_def_pars <- function() {
+  pars <- list(model = "logistic",
+              n0_method = "first.observation",
+              tangent_method = "local.regression",
               threshold = 10^2,
-              n.points.in.curve = 3,
-              init.growth.rate = NULL,#0.1, 
-              init.lag = NULL, #3.5,
+              curve_points = 3,
+              init_gr_rate = NULL,#0.1,
+              init_lag = NULL, #3.5,
               algorithm = "auto",#"default", "Levenberg-Marquardt",#
-              maxiter = 100)
+              max_iter = 100)
   return(pars)
 }
 
 
 
-#' Smooth.Data
+#' smooth_data
 #' Smoothens growth curves data
 #' @param data a data frame with two required columns names: "time" and "biomass",and one optional column: "curve_id"
 #' This is data from may come from multiple growth curves
-#' @param smooth.kind kind used for the smooth functions, defaulyts to "3RS3R"
+#' @param smooth_kind kind used for the smooth functions, defaults to "3RS3R"
 #' @returns smoothened data
 #' @export
-Smooth.Data = function(data, smooth.kind = "3RS3R") {
-  if (!("curve_id" %in% names(real.data))) {
-    real.data$curve_id = "growth.curve"
+smooth_data <- function(data, smooth_kind = "3RS3R") {
+  if (!("curve_id" %in% names(data))) {
+    data$curve_id <- "growth.curve"
   }
-  data.smooth = data  %>% filter(FALSE)
+  data_smooth <- data  %>% filter(FALSE)
   for (this_curve_id in unique(data$curve_id)) {
-    data_this_curve = data %>% filter(curve_id == this_curve_id) %>% 
-      mutate(biomass.smooth = smooth(biomass, kind = smooth.kind)) %>%
-      select(time, biomass = biomass.smooth, curve_id)
-    data.smooth = rbind(data.smooth, data_this_curve)
+    data_this_curve <- data %>% filter(curve_id == this_curve_id) %>%
+      mutate(biomass_smooth = smooth(biomass, kind = smooth_kind)) %>%
+      select(time, biomass = biomass_smooth, curve_id)
+    data_smooth <- rbind(data_smooth, data_this_curve)
   }
-  return(data.smooth)
+  return(data_smooth)
 }
 
 
 
-#' Cut.The.Data
+#' cut_the_data
 #' Smoothens growth curves data
 #' @param data a data frame with two required columns names: "time" and "biomass",and one optional column: "curve_id"
 #' This is data from may come from multiple growth curves
-#' @param max.time max. time at which we want to cut the growth curve data
+#' @param max_time max. time at which we want to cut the growth curve data
 #' @returns cut data
 #' @export
-Cut.The.Data = function(data, max.time) {
-  data.short = data %>% filter(time <= max.time)
-  return(data.short)
+cut_the_data <- function(data, max_time) {
+  data_short <- data %>% filter(time <= max_time)
+  return(data_short)
 }
 
 
 
-#' Get.Theme (not exported)
-#' 
+#' get_theme (not exported)
+#'
 #' This function sets a ggplot theme without grid
-#' @param text.size defaults to 12
+#' @param text_size defaults to 12
 #' @returns a ggplot theme
 #' @export
-Get.Theme = function(text.size = 12) {
-  my_theme = theme(
+get_theme <- function(text_size = 12) {
+  my_theme <- theme(
     panel.grid.major = element_blank(),#element_line(colour = "black", size = 0.05),
     panel.grid.minor = element_blank(),#element_line(colour = "black", size = 0.05),
     panel.background = element_rect(fill = "white",
                                     colour = "gray",
                                     size = 0.5, linetype = "solid"),
-    text = element_text(size=text.size),
-    panel.border = element_rect(linetype = "solid", fill = NA, color = "black")
+    text = element_text(size = text_size),
+    panel.border = element_rect(linetype = "solid", fill = NA, colour = "black")
   )
   return(my_theme)
 }
