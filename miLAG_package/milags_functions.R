@@ -1032,7 +1032,7 @@ cut_the_data <- function(data, max_time) {
 #' This function sets a ggplot theme without grid
 #' @param text_size defaults to 12
 #' @returns a ggplot theme
-#' @export
+
 get_theme <- function(text_size = 12) {
   my_theme <- theme(
     panel.grid.major = element_blank(),#element_line(colour = "black", size = 0.05),
