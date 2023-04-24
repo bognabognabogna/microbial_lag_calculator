@@ -15,7 +15,9 @@ library(nlsMicrobio)
 library(tools)
 library(minpack.lm)
 library(shinydisconnect)
-library(miLAG)
+library(remotes)
+install_github("https://github.com/bognabognabogna/microbial_lag_calulator", dependencies = TRUE)
+library(microbial_lag_calulator)
 
 
 #source("R/lags_helper.R")
