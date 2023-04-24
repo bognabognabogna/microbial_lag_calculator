@@ -195,6 +195,7 @@ all.simulated.data =
         exponential.growth.simulated.data %>% select(time, biomass) %>% mutate(curve_id = "exponential"))
 
 
+write.csv(all.simulated.data, file = sprintf("%sall.ssimulated_data.csv", OUTPUT_FIGS_PATH), row.names = FALSE)
 jpeg(sprintf("%sFig1.png", OUTPUT_FIGS_PATH), width = 40, height=30, units = "cm", res = 600)
 data.all.with.lag = Get.Lags.Calculated.By.All.Methods(all.simulated.data, biomass.increase.threshold)
 Plot.Lag.Fit(data.all.with.lag %>%
