@@ -982,7 +982,7 @@ smooth_data <- function(data, smooth_kind = "3RS3R") {
 
 
 #' cut_the_data
-#' Smoothens growth curves data
+#' Subsets the data frame containing only the observations up to the specified maximum time
 #' @param data a data frame with two required columns names: "time" and "biomass",and one optional column: "curve_id"
 #' This is data from may come from multiple growth curves
 #' @param max_time max. time at which we want to cut the growth curve data
@@ -996,8 +996,8 @@ cut_the_data <- function(data, max_time) {
 
 
 #' get_theme (not exported)
-#'
 #' This function sets a ggplot theme without grid
+#' The theme removes the major and minor grid lines, sets a white background with a gray border and adjusts the text size.
 #' @param text_size defaults to 12
 #' @returns a ggplot theme
 
