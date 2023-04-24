@@ -20,7 +20,7 @@ install_github("https://github.com/bognabognabogna/microbial_lag_calulator", dep
 library(microbial_lag_calulator)
 
 
-#source("R/lags_helper.R")
+
 available.methods = list("max growth acceleration",
                          "tangent",
                          "biomass increase",
