@@ -1030,7 +1030,7 @@ Cut.The.Data = function(data, max.time) {
 #' This function sets a ggplot theme without grid
 #' @param text.size defaults to 12
 #' @returns a ggplot theme
-#' @export
+
 Get.Theme = function(text.size = 12) {
   my_theme = theme(
     panel.grid.major = element_blank(),#element_line(colour = "black", size = 0.05),
