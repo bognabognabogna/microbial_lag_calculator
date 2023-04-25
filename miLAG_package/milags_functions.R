@@ -519,12 +519,13 @@ calc_baranyi_fit_lag <- function(data, n0, init_lag = NULL, init_gr_rate = NULL,
 }
 
 
-
+############################################# exported functions #########################################
 #' plot_data
 #'
 #' Plots the provided growth curve (one single growth curve) on logarithmic scale
 #' @param data_new a data frame with two required columns names: "time" and "biomass"
 #' @returns ggplot object with a growth curve
+#' @export
 plot_data <- function(data_new) {
   data_new <- data_new %>%
     mutate(log10_biomass = log10(biomass))
@@ -543,7 +544,7 @@ plot_data <- function(data_new) {
 
 
 
-############################################# exported functions #########################################
+
 #' fit_exp_lag
 #'
 #' Fits the lag to multiple growth curves based on the basic tangent method
