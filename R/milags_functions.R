@@ -144,13 +144,7 @@ compare_algorithms <- function(nls_LM_no_bound, nls_PORT, nls_LM) {
 #' @param max_iter max. number of iterations
 #' @param lower_bound lower bound for the bounded nls optimization;
 #' @returns the best nls fitting object with parameters fitted to Baranyi model (lowest Res.Sum Sq provided that all coefficients are nonnegative)
-choose_lag_fit_algorithm_baranyi <- function(gr_curve,
-                                                     LOG10N0,
-                                                     init_lag,
-                                                     init_mumax,
-                                                     init_LOG10Nmax,
-                                                     max_iter,
-                                                     lower_bound) {
+choose_lag_fit_algorithm_baranyi <- function(gr_curve, LOG10N0, init_lag, init_mumax, init_LOG10Nmax, max_iter, lower_bound) {
 
   # choose best from LM and port
   # Sometimes the lower.bound argument makes the fit much worse.
@@ -208,12 +202,7 @@ choose_lag_fit_algorithm_baranyi <- function(gr_curve,
 #' @param max_iter max. number of iterations; defaults to 100
 #' @param lower_bound lower bound for the bounded nls optimization; defaults to 0
 #' @returns the best nls fitting object with parameters fitted to logistic model (lowest Res.Sum Sq provided that all coefficients are nonnegative)
-choose_lag_fit_algorithm_logistic <- function(gr_curve, n0,
-                                                      init_gr_rate = init_gr_rate,
-                                                      init_K = init_K,
-                                                      init_lag = init_lag,
-                                                      max_iter = 100,
-                                                      lower_bound = c(0,0,0)) {
+choose_lag_fit_algorithm_logistic <- function(gr_curve, n0, init_gr_rate = init_gr_rate, init_K = init_K, init_lag = init_lag, max_iter = 100, lower_bound = c(0,0,0)) {
   # choose best from LM and port
   # Sometimes the lower.bound argument makes the fit much worse.
   tryCatch(
@@ -268,13 +257,7 @@ choose_lag_fit_algorithm_logistic <- function(gr_curve, n0,
 #' @param max_iter max. number of iterations; defaults to 100
 #' @param lower_bound lower bound for the bounded nls optimization; defaults to 0
 #' @returns lag and the nls fitting object with parameters fitted to logistic model
-calc_lag_fit_to_logistic_with_lag <- function(gr_curve, n0,
-                                                      init_gr_rate = init_gr_rate,
-                                                      init_K = init_K,
-                                                      init_lag = init_lag,
-                                                      algorithm = "auto",# Levenberg-Marquardt", # or "port" for nls
-                                                      max_iter = 100,
-                                                      lower_bound = c(0,0,0)) {
+calc_lag_fit_to_logistic_with_lag <- function(gr_curve, n0, init_gr_rate = init_gr_rate, init_K = init_K, init_lag = init_lag, algorithm = "auto", max_iter = 100, lower_bound = c(0,0,0)) {
   tryCatch(
     expr =
       {if (algorithm == "auto") {
@@ -330,14 +313,7 @@ calc_lag_fit_to_baranyi_with_lag <- function(gr_curve, LOG10N0 = NULL, init_lag 
   tryCatch(
     expr =
       {if (algorithm == "auto") {
-        nls <- choose_lag_fit_algorithm_baranyi(gr_curve,
-                                                           LOG10N0 = LOG10N0,
-                                                           init_lag = init_lag,
-                                                           init_mumax = init_mumax,
-                                                           init_LOG10Nmax = init_LOG10Nmax,
-                                                           max_iter = max_iter,
-                                                           lower_bound = lower_bound)
-
+        nls <- choose_lag_fit_algorithm_baranyi(gr_curve, LOG10N0 = LOG10N0, init_lag = init_lag, init_mumax = init_mumax, init_LOG10Nmax = init_LOG10Nmax, max_iter = max_iter, lower_bound = lower_bound)
         # nlsLM( is a more robust version of nls, using  Levenberg-Marquardt algorithm
       } else if (algorithm == "Levenberg-Marquardt") {
         nls <- nls_LM(baranyi, gr_curve,
@@ -429,8 +405,7 @@ get_init_pars_logistic = function(data_this_curve, this_n0, init_K, init_lag, in
 #' @param min_b defaults to 0.2; mina and minb define where to look for exponential phase: it will be where the biomass is between min + (max-min)*(lower.bound.for.gr TO upper.bound.for.gr)
 #' @param min_a defaults to 0.8
 #' @returns growth curve data with additional columns  ('lag', and predicted biomass 'predicted'), and the fitting object if return.all.params was set to TRUE
-calc_lagistic_fit_lag = function(data, n0, init_gr_rate = NULL, init_K = NULL, init_lag = NULL, algorithm, max_iter, return_all_params = FALSE,
-                                      min_b = 0.2, min_a = 0.8) {
+calc_lagistic_fit_lag = function(data, n0, init_gr_rate = NULL, init_K = NULL, init_lag = NULL, algorithm, max_iter, return_all_params = FALSE, min_b = 0.2, min_a = 0.8) {
   if (!("curve_id" %in% names(data))) {
     data$curve_id = NA
   }
@@ -534,14 +509,7 @@ calc_baranyi_fit_lag <- function(data, n0, init_lag = NULL, init_gr_rate = NULL,
     init_LOG10Nmax <- max(data_this_curve_for_model$LOG10N)
     initial_pars_baranyi <- get_init_pars_baranyi(data_this_curve, this_n0, init_lag, init_gr_rate)
 
-    fit_obj_this_curve <- calc_lag_fit_to_baranyi_with_lag(gr_curve = data_this_curve_for_model,
-                                                                          LOG10N0 = init_LOG10N0,
-                                                                          init_lag = inint_pars_baranyi$init_lag,
-                                                                          init_mumax = inint_pars_baranyi$init_mumax,
-                                                                          init_LOG10Nmax = init_LOG10Nmax,
-                                                                          algorithm = algorithm,
-                                                                          max_iter = max_iter,
-                                                                          lower_bound = c(0,0,0, 0))
+    fit_obj_this_curve <- calc_lag_fit_to_baranyi_with_lag(gr_curve = data_this_curve_for_model, LOG10N0 = init_LOG10N0, init_lag = inint_pars_baranyi$init_lag, init_mumax = inint_pars_baranyi$init_mumax, init_LOG10Nmax = init_LOG10Nmax, algorithm = algorithm, max_iter = max_iter, lower_bound = c(0,0,0, 0))
     data_this_curve <- data_this_curve %>%
       mutate(lag = round(fit_obj_this_curve$lag_N,1))
     data_this_curve$predicted <- if (!any(is.na(fit_obj_this_curve$nls))) {10^(predict(fit_obj_this_curve$nls, data_this_curve)) } else {data_this_curve$predicted = NA}
@@ -551,12 +519,13 @@ calc_baranyi_fit_lag <- function(data, n0, init_lag = NULL, init_gr_rate = NULL,
 }
 
 
-
+############################################# exported functions #########################################
 #' plot_data
 #'
 #' Plots the provided growth curve (one single growth curve) on logarithmic scale
 #' @param data_new a data frame with two required columns names: "time" and "biomass"
 #' @returns ggplot object with a growth curve
+#' @export
 plot_data <- function(data_new) {
   data_new <- data_new %>%
     mutate(log10_biomass = log10(biomass))
@@ -575,7 +544,7 @@ plot_data <- function(data_new) {
 
 
 
-############################################# exported functions #########################################
+
 #' fit_exp_lag
 #'
 #' Fits the lag to multiple growth curves based on the basic tangent method
@@ -1014,7 +983,7 @@ smooth_data <- function(data, smooth_kind = "3RS3R") {
 
 
 #' cut_the_data
-#' Smoothens growth curves data
+#' Subsets the data frame containing only the observations up to the specified maximum time
 #' @param data a data frame with two required columns names: "time" and "biomass",and one optional column: "curve_id"
 #' This is data from may come from multiple growth curves
 #' @param max_time max. time at which we want to cut the growth curve data
@@ -1028,11 +997,11 @@ cut_the_data <- function(data, max_time) {
 
 
 #' get_theme (not exported)
-#'
 #' This function sets a ggplot theme without grid
+#' The theme removes the major and minor grid lines, sets a white background with a gray border and adjusts the text size.
 #' @param text_size defaults to 12
 #' @returns a ggplot theme
-#' @export
+
 get_theme <- function(text_size = 12) {
   my_theme <- theme(
     panel.grid.major = element_blank(),#element_line(colour = "black", size = 0.05),
