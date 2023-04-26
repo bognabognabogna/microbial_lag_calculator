@@ -3,7 +3,7 @@
 \name{cut_the_data}
 \alias{cut_the_data}
 \title{cut_the_data
-Smoothens growth curves data}
+Subsets the data frame containing only the observations up to the specified maximum time}
 \usage{
 cut_the_data(data, max_time)
 }
@@ -18,5 +18,5 @@ cut data
 }
 \description{
 cut_the_data
-Smoothens growth curves data
+Subsets the data frame containing only the observations up to the specified maximum time
 }
