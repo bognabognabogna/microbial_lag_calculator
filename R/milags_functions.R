@@ -1001,6 +1001,7 @@ cut_the_data <- function(data, max_time) {
 #' The theme removes the major and minor grid lines, sets a white background with a gray border and adjusts the text size.
 #' @param text_size defaults to 12
 #' @returns a ggplot theme
+#' @export
 
 get_theme <- function(text_size = 12) {
   my_theme <- theme(
