@@ -19,26 +19,17 @@ Dominika Wloch-Salamon [<img src="https://orcid.org/assets/vectors/orcid.logo.ic
 
 <img src="man/figures/F1.large.jpg" alt="Preview of miLAG functionality" width="800px" height="400px" >
 
-[miLAG](https://github.com/bognabognabogna/microbial_lag_calculator) is an R package that
-aims to make it easy to calculate microbial lag phase time using 
-popular methods + tidying data + ggplot workflow. 
-
 
 [Shiny](https://dx.doi.org/10.18637/jss.v059.i10) applications are particularly 
 convenient for use in a variety of R microbiological data calculation and 
-visualization packages. However, when using known modeling libraries like nlsMicrobio or deSolve in R, 
-we often have to translate our entry data into a form the model understands, calculate lag phase with
-different mathematical methods and then after running the model, translate the 
-resulting sample (or predictions) into a more tidy format for use with other R functions. 
-`miLAG` aims to simplify these three common (often tedious) operations:
+visualization packages. This is because they are interactive stand-alone tools which do not require any additional software.
+We invite to use our shiny web server: 
+https://microbialgrowth.shinyapps.io/lag_calulator/ which allows to calculate microbial lag phase duration using popular methods and various data pre-processing techniques.
 
-- **Extracting data and choosing the best model**. This often means
- 
 
-- **Calculating lag phase duration** from given model. This often means 
+For the developper's use we invite to use either the local version of the shiny app 
+or the [miLAG](https://github.com/bognabognabogna/microbial_lag_calculator) package which provides a variety of functions that enable lag calculations, and in particular the function: `calc_lag`. 
 
-`miLAG` also provides some additional functionality for data
-manipulation and visualization tasks common to many models:
 
 
 - **Visualizing microbacteria growth curve and plotting lag**. The focus on
@@ -48,7 +39,6 @@ manipulation and visualization tasks common to many models:
 
 ## Supported methods and models
 
-Please note that within this library and README.md "method” refers to the way in which the lag phase is determined, while “model” refers to a set of equations that reproduce the entire microbial growth curve.
 `miLAG` aims to support a variety of of mathematical methods calculating microbial lag duration.
 Currently supported methods include:
 - tangent method,
@@ -56,15 +46,11 @@ Currently supported methods include:
 - biomass increase method,
 - parameter fitting method,
 </br>
-While possible supported models are as follows:
-- exponential model
-- logistic model
-- Monod model
-- Baranyi model
+
 
 ## Installation
 
-You can install the latest development version from
+You can install the latest development version of `miLag` package from
 GitHub with these R commands:
 
 ``` r
@@ -73,47 +59,55 @@ library(remotes)
 install_github("https://github.com/bognabognabogna/microbial_lag_calulator", dependencies = TRUE)
 ```
 
+and the local vesrion of the shiny application by further running:
+
+``` r
+#install.packages("shiny")
+library(shiny)
+shiny::runApp('~/shiny_app/lag_calulator/app.R')
+```
+
+
 ## Examples
 
 This example shows the use of miLAG with the example dataset;
 
 ``` r
 library(miLAG)
-library(dplyr)
-
-
 available.methods = list("max growth acceleration",
                          "tangent",
                          "biomass increase",
                          "parameter fitting to a model")
 parameters.default = get_def_pars()
-my_theme = get_theme(text_size = 22)
 ```
 
 Imagine this dataset:
 
 ``` r
-set.seed(5)
+time = seq(1,24,0.1)
+biomass = if_else(time < 5, 10^5, 10^5*(exp(0.05*(time - 2)))
 example =
   tibble(
-    time = c(),
-    biomass = rnorm(n * 5, c(0,1,2,1,-1), 0.5)
+    time = time,
+    biomass = biomass
   )
 ```
 
+Which can be visualised as a growth curve:
+``` r
+library(ggplot2)
+ggplot(example) + geom_line(aes(x=time, y = biomass)) +
+xlab("Time") +
+ylab("CFU")
+```
 
-
-A hierarchical model of this data might fit an overall mean 
-
-
-### Composing data for input to model: `get_n0`, choose_lag_fit_algorithm_`, `compare_algortithms`
-
-
-So we can skip right to modeling:
+And the lag can be calculated and visualised e.g.:
 
 ``` r
-m =
+lag.output = calc_lag(example, method = "tangent", pars = parameters.default)
+plot_data(lag.output)
 ```
+
 
 See `vignette("miLAG")` for a variety of additional examples and
 more explanation of how it works.
@@ -129,6 +123,7 @@ to reproduce the issue. Pull requests should be filed against the
 `miLAG` grew out of helper functions we wrote to make our own lag phase calculation
 pipelines tidier. Over time it has expanded to cover more use cases we
 have encountered, but we would love to make it cover more!
+We also invite the scientific community to contribute to further improvements.
 
 ## Acknowledgements
 
