@@ -28,6 +28,8 @@ We invite to use our shiny web server:
 https://microbialgrowth.shinyapps.io/lag_calulator/ </br>
 
 which allows to calculate microbial lag phase duration using popular methods and various data pre-processing techniques.
+The manual can be found [here](https://github.com/bognabognabogna/microbial_lag_calculator/blob/main/shiny_app/lag_calulator/)
+
 
 ## R package: miLAG
 
