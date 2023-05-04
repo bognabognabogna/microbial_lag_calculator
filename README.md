@@ -8,8 +8,9 @@ status](https://codecov.io/gh/mjskay/tidybayes/branch/master/graph/badge.svg)](h
 ![licence](https://img.shields.io/badge/Licence-GPL--3-blue.svg) 
 
 
-Authors: Monika Opalek [<img src="https://orcid.org/assets/vectors/orcid.logo.icon.svg" width="16px" height="16px">][1], 
-Bogna J. Smug [<img src="https://orcid.org/assets/vectors/orcid.logo.icon.svg" width="16px" height="16px">][2],
+Authors: Bogna J. Smug [<img src="https://orcid.org/assets/vectors/orcid.logo.icon.svg" width="16px" height="16px">][2],
+Monika Opalek [<img src="https://orcid.org/assets/vectors/orcid.logo.icon.svg" width="16px" height="16px">][1], 
+Maks Nęcki,
 Dominika Wloch-Salamon [<img src="https://orcid.org/assets/vectors/orcid.logo.icon.svg" width="16px" height="16px">][3]
 
 [1]: https://orcid.org/0000-0003-1414-901X
