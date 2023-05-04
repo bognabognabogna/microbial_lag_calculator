@@ -19,7 +19,7 @@ Dominika Wloch-Salamon [<img src="https://orcid.org/assets/vectors/orcid.logo.ic
 
 <img src="man/figures/F1.large.jpg" alt="Preview of miLAG functionality" width="800px" height="400px" >
 
-## Shiny app and R package
+## Shiny app: Microbial lag calculator
 [Shiny](https://dx.doi.org/10.18637/jss.v059.i10) applications are particularly 
 convenient for use in a variety of R microbiological data calculation and 
 visualization packages. This is because they are interactive stand-alone tools which do not require any additional software.
@@ -29,16 +29,11 @@ https://microbialgrowth.shinyapps.io/lag_calulator/ </br>
 
 which allows to calculate microbial lag phase duration using popular methods and various data pre-processing techniques.
 
+## R package: miLAG
 
 For the developper's use we invite to use either the local version of the shiny app 
 or the [miLAG](https://github.com/bognabognabogna/microbial_lag_calculator) package which provides a variety of functions that enable lag calculations, and in particular the function: `calc_lag`. 
 
-
-
-- **Visualizing microbacteria growth curve and plotting lag**. The focus on
-
-
-<img src="man/figures/F2.large.jpg" alt="The interval family of growth curves" width="650px" height="500px" >
 
 ## Supported methods and models
 
