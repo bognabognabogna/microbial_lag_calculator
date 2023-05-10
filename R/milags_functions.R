@@ -760,7 +760,7 @@ calc_lag <- function(data, method, pars) {
     mutate(log_n0 = log(n0))
 
 
-  if (method == "exponential") {
+  if (method == "tangent") {
     sel_tangent_method <- pars$tangent_method
     data_new <- fit_exp_lag(data,
                                    n0 = n0,
