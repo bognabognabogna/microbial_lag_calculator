@@ -105,7 +105,7 @@ And the lag can be calculated and visualised e.g.:
 
 ``` r
 lag.output = calc_lag(example, method = "tangent", pars = parameters.default)
-plot_data(lag.output)
+plot_lag_fit(lag.output)
 ```
 
 
