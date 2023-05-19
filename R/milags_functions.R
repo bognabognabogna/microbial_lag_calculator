@@ -90,7 +90,7 @@ fit_exp_lag_to_curve <- function(data, n0, tangent_method = "to.point", curve_po
 #' @param nls_PORT second object resulting from running nls
 #' @param nls_LM third object resulting from running nls
 #' @returns the best fitting object (lowest Res.Sum Sq provided that all coefficients are nonnegative)
-compare_algorithms <- function(nls_LM_no_bound, nls_PORT, nls_LM) {
+compare_algorithms <- function(nls_LM_no_bound, nls_PORT, nlsres_LM) {
   if (!all(is.na(nls_LM_no_bound))) {
     s <- summary(nls_LM_no_bound)
     if (all(as.numeric(s$coefficients[,1]) >= 0)) {
@@ -100,15 +100,15 @@ compare_algorithms <- function(nls_LM_no_bound, nls_PORT, nls_LM) {
     }
   }
   # first compare two bounded models
-  if (!all(is.na(nls_PORT)) & !all(is.na(nls_LM))) {
+  if (!all(is.na(nls_PORT)) & !all(is.na(nlsres_LM))) {
     # if both bounded models are available compare them and choose the better one
-    anova_res <- anova(nls_LM, nls_PORT)
+    anova_res <- anova(nlsres_LM, nls_PORT)
     better_model_idx <- which(anova_res$`Res.Sum Sq` == min(anova_res$`Res.Sum Sq`))
-    if (better_model_idx ==1) {nls_bounded <- nls_LM} else if (better_model_idx == 2) {nls_bounded <- nls_PORT}
+    if (better_model_idx ==1) {nls_bounded <- nlsres_LM} else if (better_model_idx == 2) {nls_bounded <- nls_PORT}
   } else if (!all(is.na(nls_PORT))) {
     nls_bounded <- nls_PORT
-  } else if (!all(is.na(nls_LM))) {
-    nls_bounded <- nls_LM
+  } else if (!all(is.na(nlsres_LM))) {
+    nls_bounded <- nlsres_LM
   } else {
     nls_bounded <- NA
   }
@@ -118,15 +118,15 @@ compare_algorithms <- function(nls_LM_no_bound, nls_PORT, nls_LM) {
     # if both bounded models are available compare them and choose the better one
     anova_res <- anova(nls_bounded, nls_LM_no_bound)
     better_model_idx <- which(anova_res$`Res.Sum Sq` == min(anova_res$`Res.Sum Sq`))
-    if (better_model_idx ==1) {nls <- nls_bounded} else if (better_model_idx == 2) {nls <- nls_LM_no_bound}
+    if (better_model_idx ==1) {nls_a <- nls_bounded} else if (better_model_idx == 2) {nls_a <- nls_LM_no_bound}
   } else if (!all(is.na(nls_bounded))) {
-    nls <- nls_bounded
+    nls_a <- nls_bounded
   } else if (!all(is.na(nls_LM_no_bound))) {
-    nls <- nls_LM_no_bound
+    nls_a <- nls_LM_no_bound
   } else {
-    nls <- NA
+    nls_a <- NA
   }
-  return(nls)
+  return(nls_a)
 
 }
 
@@ -144,28 +144,34 @@ compare_algorithms <- function(nls_LM_no_bound, nls_PORT, nls_LM) {
 #' @param max_iter max. number of iterations
 #' @param lower_bound lower bound for the bounded nls optimization;
 #' @returns the best nls fitting object with parameters fitted to Baranyi model (lowest Res.Sum Sq provided that all coefficients are nonnegative)
-choose_lag_fit_algorithm_baranyi <- function(gr_curve, LOG10N0, init_lag, init_mumax, init_LOG10Nmax, max_iter, lower_bound) {
+choose_lag_fit_algorithm_baranyi <- function(gr_curve,
+                                                     LOG10N0,
+                                                     init_lag,
+                                                     init_mumax,
+                                                     init_LOG10Nmax,
+                                                     max_iter,
+                                                     lower_bound) {
 
   # choose best from LM and port
   # Sometimes the lower.bound argument makes the fit much worse.
   tryCatch(
     expr =
-      {nls_LM <- nls_LM(formula = baranyi,
+      {nlsres_LM <- nlsLM(formula = baranyi,
                         data = gr_curve,
                         start = list(lag=init_lag, mumax=init_mumax, LOG10N0 = LOG10N0, LOG10Nmax = init_LOG10Nmax),
-                        control = nls_control(max_iter = max_iter),
+                        control = nls.control(maxiter = max_iter),
                         lower = lower_bound)
       },
     error = function(cond) {
       # this operator assigns value outside the error environment
-      nls_LM <<- NA
+      nlsres_LM <<- NA
     })
   tryCatch(
     expr =
-      {nls_LM_no_bound <- nls_LM(formula = baranyi,
+      {nls_LM_no_bound <- nlsLM(formula = baranyi,
                                  data = gr_curve,
                                  start = list(lag=init_lag, mumax=init_mumax, LOG10N0 = LOG10N0, LOG10Nmax = init_LOG10Nmax),
-                                 control = nls_control(max_iter = max_iter))
+                                 control = nls.control(maxiter = max_iter))
       },
     error = function(cond) {
       nls_LM_no_bound <<- NA
@@ -176,16 +182,16 @@ choose_lag_fit_algorithm_baranyi <- function(gr_curve, LOG10N0, init_lag, init_m
                         data = gr_curve,
                         start = list(lag=init_lag, mumax=init_mumax, LOG10N0 = LOG10N0, LOG10Nmax = init_LOG10Nmax),
                         algorithm = "port",
-                        control = nls_control(max_iter = max_iter),
+                        control = nls.control(maxiter = max_iter),
                         lower = lower_bound)
       },
     error = function(cond) {
       nls_PORT <<- NA
     })
 
-  nls <- compare_algorithms(nls_LM_no_bound, nls_PORT, nls_LM)
+  nls_a <- compare_algorithms(nls_LM_no_bound, nls_PORT, nlsres_LM)
   # consider the model without lower bounds only if the resulted estimates are above 0
-  return(nls)
+  return(nls_a)
 
 }
 
@@ -202,26 +208,31 @@ choose_lag_fit_algorithm_baranyi <- function(gr_curve, LOG10N0, init_lag, init_m
 #' @param max_iter max. number of iterations; defaults to 100
 #' @param lower_bound lower bound for the bounded nls optimization; defaults to 0
 #' @returns the best nls fitting object with parameters fitted to logistic model (lowest Res.Sum Sq provided that all coefficients are nonnegative)
-choose_lag_fit_algorithm_logistic <- function(gr_curve, n0, init_gr_rate = init_gr_rate, init_K = init_K, init_lag = init_lag, max_iter = 100, lower_bound = c(0,0,0)) {
+choose_lag_fit_algorithm_logistic <- function(gr_curve, n0,
+                                                      init_gr_rate = init_gr_rate,
+                                                      init_K = init_K,
+                                                      init_lag = init_lag,
+                                                      max_iter = 100,
+                                                      lower_bound = c(0,0,0)) {
   # choose best from LM and port
   # Sometimes the lower.bound argument makes the fit much worse.
   tryCatch(
     expr =
-      {nls_LM <- nls_LM(formula = biomass ~ n0 + (time >= lag)*n0*(-1+K*exp(gr_rate*(time-lag))/(K - n0 + n0*exp(gr_rate*(time - lag)))),
+      {nlsres_LM <- nlsLM(formula = biomass ~ n0 + (time >= lag)*n0*(-1+K*exp(gr_rate*(time-lag))/(K - n0 + n0*exp(gr_rate*(time - lag)))),
                         data = gr_curve,
                         start = list(gr_rate = init_gr_rate, K=init_K, lag = init_lag),
-                        control = nls_control(max_iter = max_iter),
+                        control = nls.control(maxiter = max_iter),
                         lower = lower_bound)
       },
     error = function(cond) {
-      nls_LM <<- NA
+      nlsres_LM <<- NA
     })
   tryCatch(
     expr =
-      {nls_LM_no_bound <- nls_LM(formula = biomass ~ n0 + (time >= lag)*n0*(-1+K*exp(gr_rate*(time-lag))/(K - n0 + n0*exp(gr_rate*(time - lag)))),
+      {nls_LM_no_bound <- nlsLM(formula = biomass ~ n0 + (time >= lag)*n0*(-1+K*exp(gr_rate*(time-lag))/(K - n0 + n0*exp(gr_rate*(time - lag)))),
                                  data = gr_curve,
                                  start = list(gr_rate = init_gr_rate, K=init_K, lag = init_lag),
-                                 control = nls_control(max_iter = max_iter))
+                                 control = nls.control(maxiter = max_iter))
       },
     error = function(cond) {
       nls_LM_no_bound <<- NA
@@ -231,15 +242,15 @@ choose_lag_fit_algorithm_logistic <- function(gr_curve, n0, init_gr_rate = init_
       {nls_PORT <- nls(biomass ~ n0 + (time >= lag)*n0*(-1+K*exp(gr_rate*(time-lag))/(K - n0 + n0*exp(gr_rate*(time - lag)))), gr_curve,
                         list(gr_rate = init_gr_rate, K=init_K, lag = init_lag),
                         algorithm = "port",
-                        control = nls_control(max_iter = max_iter),
+                        control = nls.control(maxiter = max_iter),
                         lower = lower_bound)},
     error = function(cond) {
       nls_PORT <<- NA
     })
 
-  nls <- compare_algorithms(nls_LM_no_bound, nls_PORT, nls_LM)
+  nls_a <- compare_algorithms(nls_LM_no_bound, nls_PORT, nlsres_LM)
   # consider the model without lower bounds only if the resulted estimates are above 0
-  return(nls)
+  return(nls_a)
 
 }
 
@@ -257,42 +268,48 @@ choose_lag_fit_algorithm_logistic <- function(gr_curve, n0, init_gr_rate = init_
 #' @param max_iter max. number of iterations; defaults to 100
 #' @param lower_bound lower bound for the bounded nls optimization; defaults to 0
 #' @returns lag and the nls fitting object with parameters fitted to logistic model
-calc_lag_fit_to_logistic_with_lag <- function(gr_curve, n0, init_gr_rate = init_gr_rate, init_K = init_K, init_lag = init_lag, algorithm = "auto", max_iter = 100, lower_bound = c(0,0,0)) {
+calc_lag_fit_to_logistic_with_lag <- function(gr_curve, n0,
+                                                      init_gr_rate = init_gr_rate,
+                                                      init_K = init_K,
+                                                      init_lag = init_lag,
+                                                      algorithm = "auto",# Levenberg-Marquardt", # or "port" for nls
+                                                      max_iter = 100,
+                                                      lower_bound = c(0,0,0)) {
   tryCatch(
     expr =
       {if (algorithm == "auto") {
-        nls <- choose_lag_fit_algorithm_logistic(gr_curve, n0,
+        nls_a <- choose_lag_fit_algorithm_logistic(gr_curve, n0,
                                                             init_gr_rate = init_gr_rate, init_K = init_K, init_lag = init_lag,
                                                             max_iter = max_iter,
                                                             lower_bound = lower_bound)
 
         # nlsLM( is a more robust version of nls, using  Levenberg-Marquardt algorithm
       } else if (algorithm == "Levenberg-Marquardt") {
-        nls <- nls_LM(formula = biomass ~ n0 + (time >= lag) * n0 * (-1 + K * exp(gr_rate * (time - lag)) / (K - n0 + n0 * exp(gr_rate * (time - lag)))),
+        nls_a <- nlsLM(formula = biomass ~ n0 + (time >= lag) * n0 * (-1 + K * exp(gr_rate * (time - lag)) / (K - n0 + n0 * exp(gr_rate * (time - lag)))),
                        data = gr_curve,
                        start = list(gr_rate = init_gr_rate, K = init_K, lag = init_lag),
-                       control = nls_control(max_iter = max_iter))
+                       control = nls.control(maxiter = max_iter))
         #lower= lower.bound)
       } else if (algorithm == "port") {
-        nls <- nls(biomass ~ n0 + (time >= lag) * n0 * (-1 + K * exp(gr_rate * (time - lag)) / (K - n0 + n0 * exp(gr_rate * (time - lag)))), gr_curve,
+        nls_a <- nls(biomass ~ n0 + (time >= lag) * n0 * (-1 + K * exp(gr_rate * (time - lag)) / (K - n0 + n0 * exp(gr_rate * (time - lag)))), gr_curve,
                      list(gr_rate = init_gr_rate, K = init_K, lag = init_lag),
                      algorithm = "port",
-                     control = nls_control(max_iter = max_iter))
+                     control = nls.control(maxiter = max_iter))
         #lower= lower.bound)
       } else {
-        nls <- nls(biomass ~ n0 + (time >= lag) * n0 * (-1 + K * exp(gr_rate * (time - lag)) / (K - n0 + n0 * exp(gr_rate * (time - lag)))), gr_curve,
+        nls_a <- nls(biomass ~ n0 + (time >= lag) * n0 * (-1 + K * exp(gr_rate * (time - lag)) / (K - n0 + n0 * exp(gr_rate * (time - lag)))), gr_curve,
                      list(gr_rate = init_gr_rate, K = init_K, lag = init_lag),
                      algorithm = algorithm,
-                     control = nls_control(max_iter = max_iter))
+                     control = nls.control(maxiter = max_iter))
       }
-        lag_N <- coef(nls)[names(coef(nls)) == "lag"] %>% unname()
+        lag_N <- coef(nls_a)[names(coef(nls_a)) == "lag"] %>% unname()
       },
     error = function(cond) {
       lag_N <<- NA
-      nls <<- NA
+      nls_a <<- NA
       #print(cond)
     })
-  return(list(lag_N = lag_N, nls = nls))
+  return(list(lag_N = lag_N, nls_a = nls_a))
 }
 
 
@@ -313,32 +330,39 @@ calc_lag_fit_to_baranyi_with_lag <- function(gr_curve, LOG10N0 = NULL, init_lag 
   tryCatch(
     expr =
       {if (algorithm == "auto") {
-        nls <- choose_lag_fit_algorithm_baranyi(gr_curve, LOG10N0 = LOG10N0, init_lag = init_lag, init_mumax = init_mumax, init_LOG10Nmax = init_LOG10Nmax, max_iter = max_iter, lower_bound = lower_bound)
+        nls_a <- choose_lag_fit_algorithm_baranyi(gr_curve,
+                                                           LOG10N0 = LOG10N0,
+                                                           init_lag = init_lag,
+                                                           init_mumax = init_mumax,
+                                                           init_LOG10Nmax = init_LOG10Nmax,
+                                                           max_iter = max_iter,
+                                                           lower_bound = lower_bound)
+
         # nlsLM( is a more robust version of nls, using  Levenberg-Marquardt algorithm
       } else if (algorithm == "Levenberg-Marquardt") {
-        nls <- nls_LM(baranyi, gr_curve,
+        nls_a <- nlsLM(baranyi, gr_curve,
                        list(lag=init_lag, mumax=init_mumax, LOG10N0 = LOG10N0, LOG10Nmax = init_LOG10Nmax),
-                       control = nls_control(max_iter = max_iter))
+                       control = nls.control(maxiter = max_iter))
         #lower= lower.bound)
       } else if (algorithm == "port") {
-        nls <- nls(baranyi, gr_curve,
+        nls_a <- nls(baranyi, gr_curve,
                      list(lag=init_lag, mumax=init_mumax, LOG10N0 = LOG10N0, LOG10Nmax = init_LOG10Nmax),
                      algorithm = "port",
-                     control = nls_control(max_iter = max_iter))
+                     control = nls.control(maxiter = max_iter))
         #lower= lower.bound)
       } else {
-        nls <- nls(baranyi, gr_curve,
+        nls_a <- nls(baranyi, gr_curve,
                      list(lag=init_lag, mumax=init_mumax, LOG10N0 = LOG10N0, LOG10Nmax = init_LOG10Nmax),
                      algorithm = algorithm,
-                     control = nls_control(max_iter = max_iter))
+                     control = nls.control(maxiter = max_iter))
       }
-        lag_N <- coef(nls)[names(coef(nls)) == "lag"] %>% unname()
+        lag_N <- coef(nls_a)[names(coef(nls_a)) == "lag"] %>% unname()
       },
     error = function(cond) {
       lag_N <<- NA
-      nls <<- NA
+      nls_a <<- NA
     })
-  return(list(lag_N = lag_N, nls = nls))
+  return(list(lag_N = lag_N, nls_a = nls_a))
 }
 
 
@@ -361,7 +385,7 @@ get_init_pars_logistic = function(data_this_curve, this_n0, init_K, init_lag, in
     init_K <- max_this_data %>% as.numeric()
   }
   if (is.null(init_lag)) {
-    init_lag <- calc_lag(data_this_curve, method = "exponential",pars = get_def_pars()) %>% pull(lag) %>% unique() %>% as.numeric()
+    init_lag <- calc_lag(data_this_curve, method = "tangent",pars = get_def_pars()) %>% pull(lag) %>% unique() %>% as.numeric()
   }
 
   if (is.null(init_gr_rate)) {
@@ -405,7 +429,8 @@ get_init_pars_logistic = function(data_this_curve, this_n0, init_K, init_lag, in
 #' @param min_b defaults to 0.2; mina and minb define where to look for exponential phase: it will be where the biomass is between min + (max-min)*(lower.bound.for.gr TO upper.bound.for.gr)
 #' @param min_a defaults to 0.8
 #' @returns growth curve data with additional columns  ('lag', and predicted biomass 'predicted'), and the fitting object if return.all.params was set to TRUE
-calc_lagistic_fit_lag = function(data, n0, init_gr_rate = NULL, init_K = NULL, init_lag = NULL, algorithm, max_iter, return_all_params = FALSE, min_b = 0.2, min_a = 0.8) {
+calc_lagistic_fit_lag <- function(data, n0, init_gr_rate = NULL, init_K = NULL, init_lag = NULL, algorithm, max_iter, return_all_params = FALSE,
+                                      min_b = 0.2, min_a = 0.8) {
   if (!("curve_id" %in% names(data))) {
     data$curve_id = NA
   }
@@ -417,7 +442,7 @@ calc_lagistic_fit_lag = function(data, n0, init_gr_rate = NULL, init_K = NULL, i
     i <- i + 1
     data_this_curve <- data %>% filter(curve_id == this_curve_id) %>% select(time, biomass, curve_id)
     this_n0 <- n0 %>% filter(curve_id == this_curve_id) %>% pull(n0)
-    inint_pars <- get_init_pars_logistic(data_this_curve, this_n0, init_K, init_lag, init_gr_rate)
+    init_pars <- get_init_pars_logistic(data_this_curve, this_n0, init_K, init_lag, init_gr_rate)
     this_fit_obj <- calc_lag_fit_to_logistic_with_lag(gr_curve = data_this_curve,
                                                                      n0 = this_n0,
                                                                      init_gr_rate = init_pars$init_gr_rate,
@@ -427,10 +452,10 @@ calc_lagistic_fit_lag = function(data, n0, init_gr_rate = NULL, init_K = NULL, i
                                                                      max_iter = max_iter)
     data_this_curve <- data_this_curve %>%
       mutate(lag = round(this_fit_obj$lag_N, 1))
-    data_this_curve$predicted = if (!any(is.na(this_fit_obj$nls))) {predict(this_fit_obj$nls, data_this_curve) } else {data_this_curve$predicted = NA}
+    data_this_curve$predicted = if (!any(is.na(this_fit_obj$nls_a))) {predict(this_fit_obj$nls_a, data_this_curve) } else {data_this_curve$predicted = NA}
     data_new <- rbind(data_new, data_this_curve)
 
-    fiting_list[[i]] <- this_fit_obj$nls
+    fiting_list[[i]] <- this_fit_obj$nls_a
   }
 
   if (!return_all_params) {
@@ -455,7 +480,7 @@ calc_lagistic_fit_lag = function(data, n0, init_gr_rate = NULL, init_K = NULL, i
 #' @returns list of parameters: init_mumax, init_lag
 get_init_pars_baranyi <- function(data_this_curve, this_n0, init_lag, init_gr_rate, min_b = 0.2, min_a = 0.8) {
   if (is.null(init_lag)) {
-    init_lag <- calc_lag(data_this_curve, method = "exponential", pars = get_def_pars()) %>% pull(lag) %>% unique() %>% as.numeric()
+    init_lag <- calc_lag(data_this_curve, method = "tangent", pars = get_def_pars()) %>% pull(lag) %>% unique() %>% as.numeric()
   }
 
   if (is.null(init_gr_rate)) {
@@ -507,16 +532,24 @@ calc_baranyi_fit_lag <- function(data, n0, init_lag = NULL, init_gr_rate = NULL,
       select(LOG10N, t)
     init_LOG10N0 <- log10(n0 %>% filter(curve_id == this_curve_id) %>% pull(n0))
     init_LOG10Nmax <- max(data_this_curve_for_model$LOG10N)
-    initial_pars_baranyi <- get_init_pars_baranyi(data_this_curve, this_n0, init_lag, init_gr_rate)
+    init_pars_baranyi <- get_init_pars_baranyi(data_this_curve, this_n0, init_lag, init_gr_rate)
 
-    fit_obj_this_curve <- calc_lag_fit_to_baranyi_with_lag(gr_curve = data_this_curve_for_model, LOG10N0 = init_LOG10N0, init_lag = inint_pars_baranyi$init_lag, init_mumax = inint_pars_baranyi$init_mumax, init_LOG10Nmax = init_LOG10Nmax, algorithm = algorithm, max_iter = max_iter, lower_bound = c(0,0,0, 0))
+    fit_obj_this_curve <- calc_lag_fit_to_baranyi_with_lag(gr_curve = data_this_curve_for_model,
+                                                                          LOG10N0 = init_LOG10N0,
+                                                                          init_lag = init_pars_baranyi$init_lag,
+                                                                          init_mumax = init_pars_baranyi$init_mumax,
+                                                                          init_LOG10Nmax = init_LOG10Nmax,
+                                                                          algorithm = algorithm,
+                                                                          max_iter = max_iter,
+                                                                          lower_bound = c(0,0,0, 0))
     data_this_curve <- data_this_curve %>%
       mutate(lag = round(fit_obj_this_curve$lag_N,1))
-    data_this_curve$predicted <- if (!any(is.na(fit_obj_this_curve$nls))) {10^(predict(fit_obj_this_curve$nls, data_this_curve)) } else {data_this_curve$predicted = NA}
+    data_this_curve$predicted <- if (!any(is.na(fit_obj_this_curve$nls_a))) {10^(predict(fit_obj_this_curve$nls_a, data_this_curve)) } else {data_this_curve$predicted = NA}
     data_new = rbind(data_new, data_this_curve)
   }
   return(data_new)
 }
+
 
 
 ############################################# exported functions #########################################
@@ -541,7 +574,6 @@ plot_data <- function(data_new) {
   return(g)
 
 }
-
 
 
 
@@ -768,7 +800,7 @@ calc_lag <- function(data, method, pars) {
                                    curve_points = pars$curve_points)
     data_new <- data_new %>%
       select(time, biomass, curve_id, lag, line_slope, line_intercept, tangent_point) %>%
-      mutate(lag_calculation_method = "exponential",
+      mutate(lag_calculation_method = "tangent",
              log_biomass = log(biomass),
              predicted_data = NA,
              diff = NA,
@@ -907,7 +939,7 @@ get_all_methods_lag <- function(data, biomass_incr_threshold, pars = NULL) {
   pars_to_point <- pars
   pars_to_point$tangent_method <- "to.point"
   data_new_exp <- calc_lag(data = data,
-                                method = "exponential",
+                                method = "tangent",
                                 pars = pars_to_point
   ) %>%
     mutate(lag_calculation_method = "tangent to \nmax growth point")
@@ -915,7 +947,7 @@ get_all_methods_lag <- function(data, biomass_incr_threshold, pars = NULL) {
   pars_local_regr <- pars
   pars_local_regr$tangent_method <- "local.regression"
   data_new_exp2 <- calc_lag(data = data,
-                                 method = "exponential",
+                                 method = "tangent",
                                  pars = pars_local_regr)%>%
     mutate(lag_calculation_method = "tangent to \nmax growth line")
 
@@ -983,7 +1015,7 @@ smooth_data <- function(data, smooth_kind = "3RS3R") {
 
 
 #' cut_the_data
-#' Subsets the data frame containing only the observations up to the specified maximum time
+#' Smoothens growth curves data
 #' @param data a data frame with two required columns names: "time" and "biomass",and one optional column: "curve_id"
 #' This is data from may come from multiple growth curves
 #' @param max_time max. time at which we want to cut the growth curve data
@@ -997,11 +1029,10 @@ cut_the_data <- function(data, max_time) {
 
 
 #' get_theme (not exported)
+#'
 #' This function sets a ggplot theme without grid
-#' The theme removes the major and minor grid lines, sets a white background with a gray border and adjusts the text size.
 #' @param text_size defaults to 12
 #' @returns a ggplot theme
-#' @export
 
 get_theme <- function(text_size = 12) {
   my_theme <- theme(
@@ -1015,3 +1046,4 @@ get_theme <- function(text_size = 12) {
   )
   return(my_theme)
 }
+
