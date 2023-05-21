@@ -1,10 +1,5 @@
 
 # miLAG: microbial lag phase duration analysis
-
-[![R build
-status](https://github.com/bognabognabogna/microbial_lag_calculator/workflows/R-CMD-check/badge.svg)](https://github.com/bognabognabogna/microbial_lag_calculator/actions)
-[![Coverage
-status](https://codecov.io/gh/mjskay/tidybayes/branch/master/graph/badge.svg)](https://codecov.io/github/mjskay/tidybayes?branch=master)
 ![licence](https://img.shields.io/badge/Licence-GPL--3-blue.svg) 
 
 
