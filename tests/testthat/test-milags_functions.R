@@ -1,6 +1,6 @@
 # Tests for milags_functions
 #
-# Author: jungwirt
+# Author: Jungwirt
 ###############################################################################
 
 
@@ -63,8 +63,8 @@ test_that("Calculating if fitting the lag to multiple growth curves based on the
       filter(curve_id == this_curve_id) %>%
       left_join(test_n0, by = "curve_id") %>%
       mutate(incr_from_n0 = biomass - test_n0)
-    
-    
+
+
     #find where second derivative is maximal
     threshold_diff <- which(data_this_curve$incr_from_n0 >= test_threshold)
     first_threshold_diff <- threshold_diff[1]
@@ -81,7 +81,7 @@ test_that("Calculating if fitting the lag to multiple growth curves based on the
 context("Test the plot_data function")
 
 test_that("Plotting growth curve works", {
-  
+
   # data
   database <- "testing_data.csv"
   test_df <- read.csv2(database) %>% filter(grepl('exponential', curve_id)) %>% select(time, biomass)
@@ -96,9 +96,53 @@ test_that("Plotting growth curve works", {
           axis.text.y = element_text(colour="blue"),
           axis.title.y = element_text(colour="blue"),
           axis.title.y.right = element_text(colour="black"))
-  
+
   expect_equal(plot_data(test_df), g_test)
- 
+
 })
+
+
+context("Test the get_init_pars_baranyi function")
+
+test_that("Getting initial parameters for Baranyi algorithm works", {
+
+  # data
+  database <- "testing_data.csv"
+  test_df <- read.csv2(database) %>% filter(grepl('exponential', curve_id)) %>% select(time, biomass)
+  init_lag <- NULL
+  init_gr_rate <- NULL
+  min_b <- 0.2
+  min_a <- 0.8
+  this_n0 <- 0.5
+  if (is.null(init_lag)) {
+    init_lag <- calc_lag(test_df, method = "tangent", pars = get_def_pars()) %>% pull(lag) %>% unique() %>% as.numeric()
+  }
+
+  if (is.null(init_gr_rate)) {
+    data_this_curve_exp <- test_df %>%
+      mutate(
+        max_biomass = max(biomass),
+        min_threshold = this_n0 + min_b * (max_biomass - this_n0),
+        max_threshold = this_n0 + min_a * (max_biomass - this_n0)) %>%
+      # take only the points that are in between min and max
+      filter(biomass <= max_threshold & biomass >= min_threshold)
+    data_this_curve_exp$logdata <- log(data_this_curve_exp$biomass/this_n0)
+    if (nrow(data_this_curve_exp %>% filter(!is.na(time) & !is.na(logdata))  > 0)) {
+      mod <- lm(logdata ~ time, data = data_this_curve_exp)
+      # this growth rate is assuming an exponential model so it will be generally underestimated
+      init_gr_rate <- mod$coefficients[2] %>% unname()
+      # we have real r = r(1-N/K) so let us take
+      n_mid <- median(data_this_curve_exp$biomass)
+      init_mumax <- init_gr_rate
+    } else {
+      init_mumax <- 0.1
+    }
+  } else {
+    init_mumax <- init_gr_rate
+  }
+  test_init <- list(init_mumax = init_mumax, init_lag = init_lag)
+  expect_equal(get_init_pars_baranyi(test_df, 0.5, NULL, NULL), test_init )
+})
+
 
 
