@@ -16,7 +16,8 @@ library(tools)
 library(minpack.lm)
 library(shinydisconnect)
 library(remotes)
-install_github("https://github.com/bognabognabogna/microbial_lag_calulator", dependencies = TRUE, upgrade = "always", force = FALSE)
+# miLAg package can be installed from here:
+#install_github("https://github.com/bognabognabogna/microbial_lag_calulator", dependencies = TRUE, upgrade = "always", force = FALSE)
 library(miLAG)
 
 
