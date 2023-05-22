@@ -699,6 +699,9 @@ fit_max_infl_lag <- function(data) {
 #' @returns ggplot object with a growth curve
 #' @export
 plot_lag_fit <- function(data_new, print_lag_info = TRUE) {
+  max_narm <- function(x) ifelse( !all(is.na(x)), max(x, na.rm=T), NA)
+  min_narm <- function(x) ifelse( !all(is.na(x)), max(x, na.rm=T), NA)
+  
   data_new <- data_new %>%
     group_by(curve_id) %>%
     mutate(x_mid = mean(time),
@@ -712,8 +715,8 @@ plot_lag_fit <- function(data_new, print_lag_info = TRUE) {
            y_min_for_curve = min(log_10_biomass),
            log10N0 = log10(exp(log(n0))),
            text_y = 1.005*y_max_for_curve,
-           max_second_deriv_b = max(second_deriv_b, na.rm = TRUE),
-           min_second_deriv_b = min(second_deriv_b, na.rm = TRUE),
+           max_second_deriv_b = max_narm(second_deriv_b),
+           min_second_deriv_b = min_narm(second_deriv_b),
            second_deriv_b_scaled = (second_deriv_b - min_second_deriv_b)/(max_second_deriv_b - min_second_deriv_b)*(y_max_for_curve - y_min_for_curve) + y_min_for_curve
            #y.limit = 1.1*y.max.for.curve
     ) %>%
@@ -731,12 +734,12 @@ plot_lag_fit <- function(data_new, print_lag_info = TRUE) {
     geom_vline(aes(xintercept = lag), size = size_lag_line, col = "red", linetype = "dashed") +
     geom_line(aes(x = time, y = log_10_biomass), col = "blue") +
     #geom_point(aes(x= time, y = log10.biomass), col = "blue") +
-    geom_point(aes(x = time, y = log_10_tangent_point), col = "darkgreen", size = 2) +
-    geom_line(aes(x = time, y = log_10_predicted), col = "darkgreen") +
-    geom_line(aes(x = time, y = log_10_threshold), col = "darkgreen") +
-    geom_line(aes(x = time, y = second_deriv_b_scaled), col = "darkgreen", alpha = 0.5) +
-    geom_hline(aes(yintercept = log10N0), size = size_n0_line, col = "black") +
-    geom_abline(aes(intercept = log10_intercept, slope = log10_slope), col = "darkgreen") +
+    geom_point(aes(x = time, y = log_10_tangent_point), col = "darkgreen", size = 2, na.rm = TRUE) +
+    geom_line(aes(x = time, y = log_10_predicted), col = "darkgreen", na.rm = TRUE) +
+    geom_line(aes(x = time, y = log_10_threshold), col = "darkgreen", na.rm = TRUE) +
+    geom_line(aes(x = time, y = second_deriv_b_scaled), col = "darkgreen", alpha = 0.5, na.rm = TRUE) +
+    geom_hline(aes(yintercept = log10N0), size = size_n0_line, col = "black", na.rm = TRUE) +
+    geom_abline(aes(intercept = log10_intercept, slope = log10_slope), col = "darkgreen", na.rm = TRUE) +
     xlab("time [h]") +
     xlim(c(0, max_time)) +
     ylab("Log10(biomass)") +
