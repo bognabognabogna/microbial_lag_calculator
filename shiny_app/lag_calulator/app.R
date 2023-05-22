@@ -44,9 +44,6 @@ ui <- shinyUI(fluidPage(
                       If you find our tool useful, please cite:"),
                          tags$a(href="https://www.biorxiv.org/content/10.1101/2022.11.16.516631v1", "Opalek & Smug, 2022"),
                          br(),
-                         div("
-                      Within the work, we discuss the methods most frequently used in experimental and theoretical studies to estimate lag phase duration. We also point out possible difficulties related to each of the methods, some inconsistencies between them and we test their accuracies and biases.
-                        We encourage you to see the publication for more details.."),
                          strong("The datasets uploaded by users are not saved nor anyhow collected. "),
                          br(),
                          br(),
