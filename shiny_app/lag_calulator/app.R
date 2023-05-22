@@ -164,7 +164,7 @@ ui <- shinyUI(fluidPage(
                          mainPanel(
                            br(),
                            h5("Growth curve data after pre-processing"),
-                           plotOutput("growth.curve.data.processed"),
+                           plotOutput("growth.curve.data.processed.plot"),
                            br(),
                          )),
                 tabPanel("Lag calculation",
@@ -279,9 +279,6 @@ server <- shinyServer(function(input, output) {
 
   isValid_input <- reactive({ !is.null(input$method) & !is.null(growth.curve.file)})
 
-  # tangent method is called 'exponential' within the code
-  selected_method = reactive({if_else(input$method == "tangent","exponential",input$method)})
-
   model.params = reactive({
     pars = list(model = input$model,
                 n0_method = input$N0.method,
@@ -372,22 +369,23 @@ server <- shinyServer(function(input, output) {
 
   growth.curve.data.processed = reactive({
     if (input$smooth_data_flag == 'yes') {
-      data = smooth_data(growth.curve.data.cut(), '3RS3R') #input$smooth_method)
+      data.smooth = smooth_data(growth.curve.data.cut(), '3RS3R') #input$smooth_method)
     } else {
-      data = growth.curve.data.cut()
+      data.smooth = growth.curve.data.cut()
     }
-    return(list(data = data,
-                message = growth.curve.data()$message))
+    #return(list(data = data,
+    #            message = growth.curve.data()$message))
+    return(data.smooth)
   })
 
   growth.curve.data.with.lag =  reactive({
-    if (nrow(growth.curve.data.processed()$data) > 0) {
-      data.with.lag = calc_lag(data = growth.curve.data.processed()$data,
-                                    method = selected_method(),
+    if (nrow(growth.curve.data.processed()) > 0) {
+      data.with.lag = calc_lag(data = growth.curve.data.processed(),
+                                    method = input$method,
                                     pars = model.params()) %>%
         mutate(lag.calculation.method = input$method)
     } else {
-      data.with.lag = growth.curve.data.processed()$data
+      data.with.lag = growth.curve.data.processed()
     }
     return(data.with.lag)
   })
@@ -421,9 +419,11 @@ server <- shinyServer(function(input, output) {
   })
 
 
-  output$growth.curve.data.processed = renderPlot({
-    if (nrow(growth.curve.data.processed()$data) > 0) {
-      fig = plot_data(growth.curve.data.processed()$data) + my_theme
+  output$growth.curve.data.processed.plot = renderPlot({
+    if (nrow(growth.curve.data.processed()) > 0) {
+      fig = plot_data(growth.curve.data.processed()) + 
+        my_theme +
+        scale_y_continuous()
     } else
       fig = ggplot() + theme_void()
     return(fig)
