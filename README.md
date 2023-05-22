@@ -80,7 +80,7 @@ Imagine this dataset:
 
 ``` r
 time = seq(1,24,0.1)
-biomass = if_else(time < 5, 10^5, 10^5*(exp(0.05*(time - 2))))
+biomass = if_else(time < 5, 10^5, 10^5*(exp(0.05*(time - 5))))
 example =
   tibble(
     time = time,
