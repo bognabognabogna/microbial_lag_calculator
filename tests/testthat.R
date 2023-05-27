@@ -7,7 +7,6 @@
 # * https://testthat.r-lib.org/reference/test_package.html#special-files
 install.packages("testthat", repos = "http://cran.us.r-project.org")
 library(testthat)
-library(ggplot2)
 library(miLAG)
 
 test_check("miLAG")
