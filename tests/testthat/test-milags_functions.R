@@ -91,7 +91,7 @@ test_that("Plotting growth curve works", {
   test_df <- database
   data_new <- test_df %>%
     mutate(log10_biomass = log10(biomass))
-  g_test <- ggplot2::ggplot(data_new)  +
+  g_test <- ggplot(data_new)  +
     geom_line(aes(x = time, y = log10_biomass), col = "blue") +
     geom_point(aes(x = time, y = log10_biomass), col = "blue") +
     xlab("time [h]") +
