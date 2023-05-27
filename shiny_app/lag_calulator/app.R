@@ -395,7 +395,7 @@ server <- shinyServer(function(input, output) {
 
   lag.value = reactive({
     if (nrow(growth.curve.data.with.lag()) > 0) {
-      lag.info =  paste(round(unique(growth.curve.data.with.lag()$lag),3), " [h].")
+      lag.info = round(unique(growth.curve.data.with.lag()$lag),3)
       t = data.frame(method = input$method, lag = lag.info)
     } else {
       t = data.frame(method = input$method, lag = NA)
