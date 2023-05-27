@@ -21,13 +21,13 @@ test_that("Getting initial biomass works", {
   expect_equal(get_n0(biom, method_2), minim_calc)
 })
 
-context("Test the calc_lag function")
+# context("Test the calc_lag function")
 
-test_that("Calculating if lag of given model works", {
+# test_that("Calculating if lag of given model works", {
 
 
-  expect_equal()
-})
+#  expect_equal()
+#})
 
 
 
@@ -53,7 +53,7 @@ context("Test the lag_biomass_incr function")
 
 test_that("Calculating if fitting the lag to multiple growth curves based on the biomass increase method works", {
 
-  database <- "testing_data.csv"
+  database <- "./lag_calculator/R/test_data/test_aplikacji_3.csv"
   test_df <- read.csv2(database) %>% filter(grepl('biomass_incr', curve_id))
   test_threshold <- 5000
   test_n0 <- 0
@@ -83,7 +83,7 @@ context("Test the plot_data function")
 test_that("Plotting growth curve works", {
 
   # data
-  database <- "testing_data.csv"
+  database <- "./lag_calculator/R/test_data/test_aplikacji_3.csv"
   test_df <- read.csv2(database) %>% filter(grepl('exponential', curve_id)) %>% select(time, biomass)
   data_new <- test_df %>%
     mutate(log10_biomass = log10(biomass))
@@ -107,7 +107,7 @@ context("Test the get_init_pars_baranyi function")
 test_that("Getting initial parameters for Baranyi algorithm works", {
 
   # data
-  database <- "testing_data.csv"
+  database <- "./lag_calculator/R/test_data/test_aplikacji_3.csv"
   test_df <- read.csv2(database) %>% filter(grepl('exponential', curve_id)) %>% select(time, biomass)
   init_lag <- NULL
   init_gr_rate <- NULL
