@@ -565,7 +565,7 @@ plot_data <- function(data_new) {
   g <- ggplot(data_new)  +
     geom_line(aes(x = time, y = log10_biomass), col = "blue") +
     geom_point(aes(x = time, y = log10_biomass), col = "blue") +
-    xlab("time [h]") +
+    xlab("time") +
     ylab("Log10(biomass)") +
     theme(axis.text.y.right = element_text(colour="black"),
           axis.text.y = element_text(colour="blue"),
@@ -705,7 +705,7 @@ plot_lag_fit <- function(data_new, print_lag_info = TRUE) {
   data_new <- data_new %>%
     group_by(curve_id) %>%
     mutate(x_mid = mean(time),
-           lag_info = paste0("Lag = ", round(lag, 3), " [h]."),
+           lag_info = paste0("Lag = ", round(lag, 3), "."),
            log_biomass = log(biomass),
            log_10_tangent_point = log10(tangent_point),
            log_10_biomass = log10(biomass),
