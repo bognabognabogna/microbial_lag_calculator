@@ -1,6 +1,7 @@
 
 # miLAG: microbial lag phase duration analysis
-![licence](https://img.shields.io/badge/Licence-GPL--3-blue.svg) 
+![licence](https://img.shields.io/badge/Licence-GPL--3-blue.svg)
+[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](http://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/)
 
 
 Authors: Bogna J. Smug [<img src="https://orcid.org/assets/vectors/orcid.logo.icon.svg" width="16px" height="16px">][2],
@@ -61,8 +62,32 @@ and the local vesrion of the shiny application by further running:
 library(shiny)
 runApp('~/shiny_app/lag_calulator/app.R')
 ```
+## Input data
 
+The accepted file formats for input data are csv and txt. The input to the application should be in a file format with two columns: The first should describe the time (preferably in hours). The second column should describe the population size (preferably in CFU/ml). Be sure to select the decimal separator appropriately - this can be modified in one of the windows in the application. An example input dataset should look like the following:
 
+```
+time;biomass
+1;4396571,976
+1,5;3807332,496
+2;4165206,611
+2,5;5690282,713
+3;7727252,94
+3,5;19381419,82
+4;13744788,86
+4,5;18066675,15
+5;23651017,71
+5,5;29465323,75
+6;28528881,12
+6,5;29448677,51
+7;29144257,31
+7,5;32086465,47
+8;29732262,17
+8,5;29888494,33
+9;30720558,23
+9,5;31220300
+10;32074919,83
+```
 ## Examples
 
 This example shows the use of miLAG with the example dataset;
