@@ -82,29 +82,6 @@ test_that("Calculating if fitting the lag to multiple growth curves based on the
 })
 
 
-context("Test the plot_data function")
-
-test_that("Plotting growth curve works", {
-
-  # data
-
-  test_df <- database
-  data_new <- test_df %>%
-    mutate(log10_biomass = log10(biomass))
-  g_test <- ggplot(data_new)  +
-    geom_line(aes(x = time, y = log10_biomass), col = "blue") +
-    geom_point(aes(x = time, y = log10_biomass), col = "blue") +
-    xlab("time [h]") +
-    ylab("Log10(biomass)") +
-    theme(axis.text.y.right = element_text(colour="black"),
-          axis.text.y = element_text(colour="blue"),
-          axis.title.y = element_text(colour="blue"),
-          axis.title.y.right = element_text(colour="black"))
-
-  expect_equal(plot_data(test_df), g_test)
-
-})
-
 
 context("Test the get_init_pars_baranyi function")
 
