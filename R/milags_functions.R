@@ -879,6 +879,7 @@ calc_lag <- function(data, method, pars) {
       select(time, biomass, log_biomass, curve_id, lag, line_slope, line_intercept, lag_calculation_method, predicted_data, diff, second_deriv_b, tangent_point, threshold)
 
   }
+  data_new$lag[data_new$lag < 0] = NA
   data_new <- data_new %>%
     left_join(n0)# %>%
   #data.new$lag[data.new$lag < 0] = 0
