@@ -1,15 +1,12 @@
 
 # miLAG: microbial lag phase duration analysis
-
-[![R build
-status](https://github.com/bognabognabogna/microbial_lag_calculator/workflows/R-CMD-check/badge.svg)](https://github.com/bognabognabogna/microbial_lag_calculator/actions)
-[![Coverage
-status](https://codecov.io/gh/mjskay/tidybayes/branch/master/graph/badge.svg)](https://codecov.io/github/mjskay/tidybayes?branch=master)
-![licence](https://img.shields.io/badge/Licence-GPL--3-blue.svg) 
+![licence](https://img.shields.io/badge/Licence-GPL--3-blue.svg)
+[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](http://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/)
 
 
-Authors: Monika Opalek [<img src="https://orcid.org/assets/vectors/orcid.logo.icon.svg" width="16px" height="16px">][1], 
-Bogna J. Smug [<img src="https://orcid.org/assets/vectors/orcid.logo.icon.svg" width="16px" height="16px">][2],
+Authors: Bogna J. Smug [<img src="https://orcid.org/assets/vectors/orcid.logo.icon.svg" width="16px" height="16px">][2],
+Monika Opalek [<img src="https://orcid.org/assets/vectors/orcid.logo.icon.svg" width="16px" height="16px">][1], 
+Maks Nęcki,
 Dominika Wloch-Salamon [<img src="https://orcid.org/assets/vectors/orcid.logo.icon.svg" width="16px" height="16px">][3]
 
 [1]: https://orcid.org/0000-0003-1414-901X
@@ -18,36 +15,26 @@ Dominika Wloch-Salamon [<img src="https://orcid.org/assets/vectors/orcid.logo.ic
 
 <img src="man/figures/F1.large.jpg" alt="Preview of miLAG functionality" width="800px" height="400px" >
 
-[miLAG](https://github.com/bognabognabogna/microbial_lag_calculator) is an R package that
-aims to make it easy to calculate microbial lag phase time using 
-popular methods + tidying data + ggplot workflow. 
-
-
+## Shiny app: Microbial lag calculator
 [Shiny](https://dx.doi.org/10.18637/jss.v059.i10) applications are particularly 
 convenient for use in a variety of R microbiological data calculation and 
-visualization packages. However, when using known modeling libraries like nlsMicrobio or deSolve in R, 
-we often have to translate our entry data into a form the model understands, calculate lag phase with
-different mathematical methods and then after running the model, translate the 
-resulting sample (or predictions) into a more tidy format for use with other R functions. 
-`miLAG` aims to simplify these three common (often tedious) operations:
+visualization packages. This is because they are interactive stand-alone tools which do not require any additional software.
+We invite to use our shiny web server: 
 
-- **Extracting data and choosing the best model**. This often means
- 
+https://microbialgrowth.shinyapps.io/lag_calulator/ </br>
 
-- **Calculating lag phase duration** from given model. This often means 
-
-`miLAG` also provides some additional functionality for data
-manipulation and visualization tasks common to many models:
+which allows to calculate microbial lag phase duration using popular methods and various data pre-processing techniques.
+The manual can be found [here](https://github.com/bognabognabogna/microbial_lag_calculator/blob/main/shiny_app/lag_calulator/)
 
 
-- **Visualizing microbacteria growth curve and plotting lag**. The focus on
+## R package: miLAG
 
+For the developper's use we invite to use either the local version of the shiny app 
+or the [miLAG](https://github.com/bognabognabogna/microbial_lag_calculator) package which provides a variety of functions that enable lag calculations, and in particular the function: `calc_lag`. 
 
-<img src="man/figures/F2.large.jpg" alt="The interval family of growth curves" width="650px" height="500px" >
 
 ## Supported methods and models
 
-Please note that within this library and README.md "method” refers to the way in which the lag phase is determined, while “model” refers to a set of equations that reproduce the entire microbial growth curve.
 `miLAG` aims to support a variety of of mathematical methods calculating microbial lag duration.
 Currently supported methods include:
 - tangent method,
@@ -55,15 +42,11 @@ Currently supported methods include:
 - biomass increase method,
 - parameter fitting method,
 </br>
-While possible supported models are as follows:
-- exponential model
-- logistic model
-- Monod model
-- Baranyi model
+
 
 ## Installation
 
-You can install the latest development version from
+You can install the latest development version of `miLag` package from
 GitHub with these R commands:
 
 ``` r
@@ -72,50 +55,103 @@ library(remotes)
 install_github("https://github.com/bognabognabogna/microbial_lag_calulator", dependencies = TRUE)
 ```
 
+and the local vesrion of the shiny application by further running:
+
+``` r
+#install.packages("shiny")
+library(shiny)
+runApp('~/shiny_app/lag_calulator/app.R')
+```
+## Input data
+
+The accepted file formats for input data are csv and txt. The input to the application should be in a file format with two columns: The first should describe the time (preferably in hours). The second column should describe the population size (preferably in CFU/ml). Be sure to select the decimal separator appropriately - this can be modified in one of the windows in the application. An example input dataset should look like the following:
+
+```
+time;biomass
+1;4396571,976
+1,5;3807332,496
+2;4165206,611
+2,5;5690282,713
+3;7727252,94
+3,5;19381419,82
+4;13744788,86
+4,5;18066675,15
+5;23651017,71
+5,5;29465323,75
+6;28528881,12
+6,5;29448677,51
+7;29144257,31
+7,5;32086465,47
+8;29732262,17
+8,5;29888494,33
+9;30720558,23
+9,5;31220300
+10;32074919,83
+```
+
+
 ## Examples
 
 This example shows the use of miLAG with the example dataset;
 
 ``` r
 library(miLAG)
-library(dplyr)
-
-
 available.methods = list("max growth acceleration",
                          "tangent",
                          "biomass increase",
                          "parameter fitting to a model")
 parameters.default = get_def_pars()
-my_theme = get_theme(text_size = 22)
 ```
 
 Imagine this dataset:
 
 ``` r
-set.seed(5)
+time = seq(1,24,0.1)
+biomass = if_else(time < 5, 10^5, if_else(time < 10, 10^5*(exp(0.05*(time - 5))), 10^5*(exp(0.05*(5)))))
 example =
   tibble(
-    time = c(),
-    biomass = rnorm(n * 5, c(0,1,2,1,-1), 0.5)
+    time = time,
+    biomass = biomass
   )
 ```
 
+Which can be visualised as a growth curve:
+``` r
+library(ggplot2)
+ggplot(example) + geom_line(aes(x=time, y = biomass)) +
+xlab("Time") +
+ylab("CFU")
+```
 
-
-A hierarchical model of this data might fit an overall mean 
-
-
-### Composing data for input to model: `get_n0`, choose_lag_fit_algorithm_`, `compare_algortithms`
-
-
-So we can skip right to modeling:
+And the lag can be calculated and visualised e.g.:
 
 ``` r
-m =
+lag.output = calc_lag(example, method = "tangent", pars = parameters.default)
+plot_lag_fit(lag.output)
 ```
+
 
 See `vignette("miLAG")` for a variety of additional examples and
 more explanation of how it works.
+
+## Additional functions that modify data
+
+- `cut_data` 
+
+This function causes the last biomass values to be cut off, depending on the selected number of points we want to discard. A two-column dataframe with "time" and "biomass" columns is used as the input dataset to this function. The function returns a dataframe with two columns: time and biomass. Example usage of the `cut_data` function:
+
+```
+ data = cut_data(example, cut_max_time)
+```
+<br/>
+
+- `smooth_data` 
+
+This function smooths the growth curve data. It uses the 3SRS method as the default argument of smooth_data. A two-column dataframe with "time" and "biomass" columns is used as the input dataset to this function. The function returns a dataframe with three columns: time, smoothed biomass and curve id. Example usage of the `smooth_data`  function:
+
+``` 
+ data = smooth_data(example, '3RS3R')
+```
 
 ## Feedback, issues, and contributions
 
@@ -128,6 +164,7 @@ to reproduce the issue. Pull requests should be filed against the
 `miLAG` grew out of helper functions we wrote to make our own lag phase calculation
 pipelines tidier. Over time it has expanded to cover more use cases we
 have encountered, but we would love to make it cover more!
+We also invite the scientific community to contribute to further improvements.
 
 ## Acknowledgements
 
