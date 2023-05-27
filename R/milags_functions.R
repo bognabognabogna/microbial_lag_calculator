@@ -740,7 +740,7 @@ plot_lag_fit <- function(data_new, print_lag_info = TRUE) {
     geom_line(aes(x = time, y = second_deriv_b_scaled), col = "darkgreen", alpha = 0.5, na.rm = TRUE) +
     geom_hline(aes(yintercept = log10N0), size = size_n0_line, col = "black", na.rm = TRUE) +
     geom_abline(aes(intercept = log10_intercept, slope = log10_slope), col = "darkgreen", na.rm = TRUE) +
-    xlab("time [h]") +
+    xlab("time") +
     xlim(c(0, max_time)) +
     ylab("Log10(biomass)") +
     #ylim(c(min(data.new$log.10.biomass), max(data.new$log.10.biomass))) +
