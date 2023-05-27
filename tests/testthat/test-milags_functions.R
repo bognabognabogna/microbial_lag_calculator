@@ -47,14 +47,18 @@ test_that("Calculating if getting default parameters works", {
 })
 
 
-
+database <- data.frame(time = c(1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10),
+                 biomass = c(4396571.976, 3807332.496, 4165206.611, 5690282.713, 7727252.94, 19381419.82,
+                             13744788.86, 18066675.15, 23651017.71, 29465323.75, 28528881.12, 29448677.51,
+                             29144257.31, 32086465.47, 29732262.17, 29888494.33, 30720558.23, 31220300,
+                             32074919.83))
 
 context("Test the lag_biomass_incr function")
 
 test_that("Calculating if fitting the lag to multiple growth curves based on the biomass increase method works", {
 
-  database <- "./lag_calculator/R/test_data/test_aplikacji_3.csv"
-  test_df <- read.csv2(database) %>% filter(grepl('biomass_incr', curve_id))
+
+  test_df <- database 
   test_threshold <- 5000
   test_n0 <- 0
   data_test <- test_df %>% filter(FALSE) %>% mutate(lag = numeric(0))
@@ -83,8 +87,8 @@ context("Test the plot_data function")
 test_that("Plotting growth curve works", {
 
   # data
-  database <- "./lag_calculator/R/test_data/test_aplikacji_3.csv"
-  test_df <- read.csv2(database) %>% filter(grepl('exponential', curve_id)) %>% select(time, biomass)
+
+  test_df <- database
   data_new <- test_df %>%
     mutate(log10_biomass = log10(biomass))
   g_test <- ggplot(data_new)  +
@@ -107,8 +111,7 @@ context("Test the get_init_pars_baranyi function")
 test_that("Getting initial parameters for Baranyi algorithm works", {
 
   # data
-  database <- "./lag_calculator/R/test_data/test_aplikacji_3.csv"
-  test_df <- read.csv2(database) %>% filter(grepl('exponential', curve_id)) %>% select(time, biomass)
+  test_df <- database 
   init_lag <- NULL
   init_gr_rate <- NULL
   min_b <- 0.2
