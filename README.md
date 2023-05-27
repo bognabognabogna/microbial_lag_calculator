@@ -88,6 +88,8 @@ time;biomass
 9,5;31220300
 10;32074919,83
 ```
+
+
 ## Examples
 
 This example shows the use of miLAG with the example dataset;
@@ -131,6 +133,25 @@ plot_lag_fit(lag.output)
 
 See `vignette("miLAG")` for a variety of additional examples and
 more explanation of how it works.
+
+## Additional functions that modify data
+
+- `cut_data` 
+
+This function causes the last biomass values to be cut off, depending on the selected number of points we want to discard. A two-column dataframe with "time" and "biomass" columns is used as the input dataset to this function. The function returns a dataframe with two columns: time and biomass. Example usage of the `cut_data` function:
+
+```
+ data = cut_data(example, cut_max_time)
+```
+<br/>
+
+- `smooth_data` 
+
+This function smooths the growth curve data. It uses the 3SRS method as the default argument of smooth_data. A two-column dataframe with "time" and "biomass" columns is used as the input dataset to this function. The function returns a dataframe with three columns: time, smoothed biomass and curve id. Example usage of the `smooth_data`  function:
+
+``` 
+ data = smooth_data(example, '3RS3R')
+```
 
 ## Feedback, issues, and contributions
 
