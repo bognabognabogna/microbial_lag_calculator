@@ -35,15 +35,15 @@ context("Test the get_def_pars function")
 
 test_that("Calculating if getting default parameters works", {
 
-  expect_equal(get_def_pars(), list("logistic",
-                                    "first.observation",
-                                    "local.regression",
-                                    10^2,
-                                    3,
-                                    NULL,
-                                    NULL,
-                                    "auto",
-                                    100))
+  expect_equal(get_def_pars(), list(model = "logistic",
+                                    n0_method = "first.observation",
+                                    tangent_method = "local.regression",
+                                    threshold = 10^2,
+                                    curve_points = 3,
+                                    init_gr_rate = NULL,
+                                    init_lag = NULL,
+                                    algorithm = "auto",
+                                    max_iter = 100))
 })
 
 
