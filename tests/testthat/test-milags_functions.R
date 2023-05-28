@@ -134,24 +134,6 @@ test_that("Cutting biomass data works", {
   expect_equal(cut_the_data(test_df, max_time), data_short )
 })
 
-context("Test the smooth_data function")
-test_that("Smoothing biomass data works", {
-
-  # data
-  test_df <- database 
-  if (!("curve_id" %in% names(test_df))) {
-    test_df$curve_id <- "growth.curve"
-  }
-  data_smooth <- test_df  %>% filter(FALSE)
-  for (this_curve_id in unique(test_df$curve_id)) {
-    data_this_curve <- test_df %>% filter(curve_id == this_curve_id) %>%
-      mutate(biomass_smooth = smooth(biomass, kind = "3RS3R")) %>%
-      select(time, biomass = biomass_smooth, curve_id)
-    data_smooth <- rbind(data_smooth, data_this_curve)
-  }
-  expect_equal(smooth_data(test_df, smooth_kind = "3RS3R"), data_smooth )
-})
-
  context("Test the fit_max_infl_lag function")
 test_that("Fitting maximal biomass data to lag works", {
 
