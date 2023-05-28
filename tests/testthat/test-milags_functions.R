@@ -148,7 +148,76 @@ test_that("Smoothing biomass data works", {
       mutate(biomass_smooth = smooth(biomass, kind = "3RS3R")) %>%
       select(time, biomass = biomass_smooth, curve_id)
     data_smooth <- rbind(data_smooth, data_this_curve)
+  }
   expect_equal(smooth_data(test_df), data_smooth )
 })
 
- 
+ context("Test the fit_max_infl_lag function")
+test_that("Fitting maximal biomass data to lag works", {
+
+  # data
+  test_df <- database 
+  if (!("curve_id" %in% names(test_df))) {
+    test_df$curve_id <- "growth.curve"
+  }
+  data_new <- test_df %>% filter(FALSE) %>% mutate(log_biomass = numeric(0), diff = numeric(0), lag = numeric(0))
+  for (this_curve_id in unique(test_df$curve_id)) {
+    data_this_curve <- test_df %>%
+      filter(curve_id == this_curve_id) %>%
+      arrange(time) %>%
+      as.data.frame() %>%
+      mutate(log_biomass = log(biomass),
+             time_diff = mean(c(diff(time), diff(dplyr::lag(time))), na.rm = TRUE),
+             time_av = (time + dplyr::lag(time))/2) %>%
+      mutate(
+        #second.deriv.b = c(NA,second_deriv(time, log.biomass), NA),
+        # central scheme
+        second_deriv_b = (dplyr::lead(log_biomass) + dplyr::lag(log_biomass) - 2 * log_biomass)/time_diff^2,
+        # we only look at second derivative if we know the first derivative is positive!
+        # In empirical data we sometimes see a decrease in biomass but we don;t want to look at the second derivative there!
+        biomass_incr = dplyr::lead(log_biomass)  > dplyr::lag(log_biomass)
+      )
+
+    #find where second derivative is maximal
+    max_second_deriv_b <- max(data_this_curve$second_deriv_b, na.rm=TRUE)
+    # take first point when max derivative if there are multiple
+    ind_max_second_deriv_b <- which(data_this_curve$second_deriv_b == max_second_deriv_b)[1]
+    lag_this_curve <- data_this_curve$time[ind_max_second_deriv_b]
+    data_this_curve <- data_this_curve %>%
+      mutate(
+        lag = round(lag_this_curve, 1))
+    data_new <- rbind(data_new, data_this_curve)
+  }
+  expect_equal(fit_max_infl_lag(test_df), data_new )
+})
+
+ context("Test the lag_biomass_incr function")
+test_that("Biomass increase method works", {
+
+  # data
+  threshold <- 29465323.75
+  n0 <- 4396571.976
+  test_df <- database 
+  if (!("curve_id" %in% names(test_df))) {
+    test_df$curve_id <- "growth.curve"
+  }
+   data_new <- test_df %>% filter(FALSE) %>% mutate(lag = numeric(0))
+  for (this_curve_id in unique(test_df$curve_id)) {
+    data_this_curve <- test_df %>%
+      filter(curve_id == this_curve_id) %>%
+      left_join(n0, by = "curve_id") %>%
+      mutate(incr_from_n0 = biomass - n0)
+
+
+    #find where second derivative is maximal
+    threshold_diff <- which(data_this_curve$incr_from_n0 >= threshold)
+    first_threshold_diff <- threshold_diff[1]
+    lag_this_curve <- data_this_curve$time[first_threshold_diff]
+    data_this_curve <- data_this_curve %>%
+      mutate(
+        lag = round(lag_this_curve,1))
+    data_new <- rbind(data_new, data_this_curve)
+  }
+  expect_equal(lag_biomass_incr(test_df, threshold, n0 ), data_new )
+})
+
