@@ -124,5 +124,31 @@ test_that("Getting initial parameters for Baranyi algorithm works", {
   expect_equal(get_init_pars_baranyi(test_df, 0.5, NULL, NULL), test_init )
 })
 
+context("Test the cut_data function")
+test_that("Cutting biomass data works", {
 
+  # data
+  test_df <- database 
+  max_time <- 5
+  data_short <- test_df %>% filter(time <= max_time)
+  expect_equal(cut_data(test_df, max_time), data_short )
+})
 
+context("Test the smooth_data function")
+test_that("Smoothing biomass data works", {
+
+  # data
+  test_df <- database 
+  if (!("curve_id" %in% names(test_df))) {
+    test_df$curve_id <- "growth.curve"
+  }
+  data_smooth <- test_df  %>% filter(FALSE)
+  for (this_curve_id in unique(test_df$curve_id)) {
+    data_this_curve <- test_df %>% filter(curve_id == this_curve_id) %>%
+      mutate(biomass_smooth = smooth(biomass, kind = "3RS3R")) %>%
+      select(time, biomass = biomass_smooth, curve_id)
+    data_smooth <- rbind(data_smooth, data_this_curve)
+  expect_equal(smooth_data(test_df), data_smooth )
+})
+
+ 
