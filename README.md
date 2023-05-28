@@ -53,7 +53,7 @@ GitHub with these R commands:
 ``` r
 #install.packages("remotes")
 library(remotes)
-install_github("https://github.com/bognabognabogna/microbial_lag_calulator", dependencies = TRUE)
+install_github("https://github.com/bognabognabogna/microbial_lag_calulator", dependencies = TRUE, force = TRUE)
 ```
 
 and the local vesrion of the shiny application by further running:
