@@ -287,3 +287,99 @@ if (is.null(init_K)) {
   data_new <- list(init_K = init_K, init_lag = init_lag, init_gr_rate = init_gr_rate)
   expect_equal(get_init_pars_logistic(test_df, this_n0, init_K, init_lag, init_gr_rate, min_b, min_a), data_new )
 })
+
+ context("Test the choose_lag_fit_algorithm_baranyi function")
+test_that("Choosing the best nls model to fit to algorithm baranyi works", {
+
+  # data
+  test_df <- database 
+  LOG10N0 <- NULL
+  init_lag <- NULL
+  init_mumax <- NULL
+  init_LOG10Nmax <- NULL
+  algorithm <- "auto"
+  max_iter <- 100
+  lower_bound <- c(0,0,0, 0)
+  tryCatch(
+    expr =
+      {nlsres_LM <- nlsLM(formula = baranyi,
+                        data = test_df,
+                        start = list(lag=init_lag, mumax=init_mumax, LOG10N0 = LOG10N0, LOG10Nmax = init_LOG10Nmax),
+                        control = nls.control(maxiter = max_iter),
+                        lower = lower_bound)
+      },
+    error = function(cond) {
+      # this operator assigns value outside the error environment
+      nlsres_LM <<- NA
+    })
+  tryCatch(
+    expr =
+      {nls_LM_no_bound <- nlsLM(formula = baranyi,
+                                 data = test_df,
+                                 start = list(lag=init_lag, mumax=init_mumax, LOG10N0 = LOG10N0, LOG10Nmax = init_LOG10Nmax),
+                                 control = nls.control(maxiter = max_iter))
+      },
+    error = function(cond) {
+      nls_LM_no_bound <<- NA
+    })
+  tryCatch(
+    expr =
+      {nls_PORT <- nls(baranyi,
+                        data = test_df,
+                        start = list(lag=init_lag, mumax=init_mumax, LOG10N0 = LOG10N0, LOG10Nmax = init_LOG10Nmax),
+                        algorithm = "port",
+                        control = nls.control(maxiter = max_iter),
+                        lower = lower_bound)
+      },
+    error = function(cond) {
+      nls_PORT <<- NA
+    })
+
+  nls_a <- compare_algorithms(nls_LM_no_bound, nls_PORT, nlsres_LM)
+  # consider the model without lower bounds only if the resulted estimates are above 0
+
+  expect_equal(choose_lag_fit_algorithm_baranyi(test_df, LOG10N0 = NULL, init_lag = NULL, init_mumax = NULL, init_LOG10Nmax = NULL, algorithm = "auto", max_iter = 100, lower_bound = c(0,0,0, 0)), nls_a )
+})
+
+ context("Test the choose_lag_fit_algorithm_logistic function")
+test_that("Choosing the best nls model to fit to logistic curve works", {
+
+  # data
+  test_df <- database 
+  n0 <- get_n0(test_df$biomass, "minimal.observation")
+ tryCatch(
+    expr =
+      {nlsres_LM <- nlsLM(formula = biomass ~ n0 + (time >= lag)*n0*(-1+K*exp(gr_rate*(time-lag))/(K - n0 + n0*exp(gr_rate*(time - lag)))),
+                        data = gr_curve,
+                        start = list(gr_rate = init_gr_rate, K=init_K, lag = init_lag),
+                        control = nls.control(maxiter = max_iter),
+                        lower = lower_bound)
+      },
+    error = function(cond) {
+      nlsres_LM <<- NA
+    })
+  tryCatch(
+    expr =
+      {nls_LM_no_bound <- nlsLM(formula = biomass ~ n0 + (time >= lag)*n0*(-1+K*exp(gr_rate*(time-lag))/(K - n0 + n0*exp(gr_rate*(time - lag)))),
+                                 data = gr_curve,
+                                 start = list(gr_rate = init_gr_rate, K=init_K, lag = init_lag),
+                                 control = nls.control(maxiter = max_iter))
+      },
+    error = function(cond) {
+      nls_LM_no_bound <<- NA
+    })
+  tryCatch(
+    expr =
+      {nls_PORT <- nls(biomass ~ n0 + (time >= lag)*n0*(-1+K*exp(gr_rate*(time-lag))/(K - n0 + n0*exp(gr_rate*(time - lag)))), gr_curve,
+                        list(gr_rate = init_gr_rate, K=init_K, lag = init_lag),
+                        algorithm = "port",
+                        control = nls.control(maxiter = max_iter),
+                        lower = lower_bound)},
+    error = function(cond) {
+      nls_PORT <<- NA
+    })
+  nls_a <- compare_algorithms(nls_LM_no_bound, nls_PORT, nlsres_LM)
+   expect_equal(choose_lag_fit_algorithm_logistic(test_df, n0, NULL, NULL, NULL, algorithm = "auto", max_iter = 100, lower_bound = c(0,0,0, 0)), nls_a )
+})
+
+
