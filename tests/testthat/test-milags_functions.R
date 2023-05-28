@@ -196,7 +196,11 @@ test_that("Biomass increase method works", {
 
   # data
   threshold <- 29465323.75
-  n0 <- 4396571.976
+   n0 <- test_df %>%
+    arrange(time) %>%
+    summarise(n0 = get_n0(biomass, "minimal.observation")) %>%
+    ungroup() %>%
+    mutate(log_n0 = log(n0))
   test_df <- database 
   if (!("curve_id" %in% names(test_df))) {
     test_df$curve_id <- "growth.curve"
