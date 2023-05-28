@@ -341,4 +341,180 @@ test_that("Choosing the best nls model to fit to algorithm baranyi works", {
 })
 
 
+context("Test the get_all_methods_lag function")
+test_that("Getting lag by all methods works", {
 
+  # data
+  test_df <- database 
+  biomass_incr_threshold <- NULL
+  pars <- NULL
+  if (is.null(pars)) {
+    pars <- get_def_pars()
+  }
+  if (is.null(biomass_incr_threshold))  {
+    biomass_incr_threshold <- pars$threshold
+  }
+  pars_logistic <- pars
+  pars_logistic$model <- "logistic"
+  data_new_logistic <- calc_lag(data = test_df,
+                                    method = "parameter fitting to a model",
+                                    pars = pars_logistic) %>%
+    mutate(lag_calculation_method = "par. fitting\nto logistic model")
+
+  pars_baranyi <- pars
+  pars_baranyi$model <- "baranyi"
+  data_new_baranyi <- calc_lag(data = test_df,
+                                   method = "parameter fitting to a model",
+                                   pars = pars_baranyi) %>%
+    mutate(lag_calculation_method = "par. fitting\nto baranyi model")
+
+  data_new_max_infl <- calc_lag(data = test_df,
+                                    method = "max growth acceleration",
+                                    pars = pars) %>%
+    mutate(lag_calculation_method = "max\ngrowth acceleration")
+
+  pars_to_point <- pars
+  pars_to_point$tangent_method <- "to.point"
+  data_new_exp <- calc_lag(data = test_df,
+                                method = "tangent",
+                                pars = pars_to_point
+  ) %>%
+    mutate(lag_calculation_method = "tangent to \nmax growth point")
+
+  pars_local_regr <- pars
+  pars_local_regr$tangent_method <- "local.regression"
+  data_new_exp2 <- calc_lag(data = test_df,
+                                 method = "tangent",
+                                 pars = pars_local_regr)%>%
+    mutate(lag_calculation_method = "tangent to \nmax growth line")
+
+  pars$threshold <- biomass_incr_threshold
+  data_new_biominc <-  calc_lag(data = test_df,
+                                    method = "biomass increase",
+                                    pars = pars)%>%
+    mutate(lag_calculation_method = "biomass \nincrease")
+
+
+  data_all_with_lag <- data_new_max_infl %>%
+    rbind(data_new_exp) %>%
+    rbind(data_new_exp2) %>%
+    rbind(data_new_biominc) %>%
+    rbind(data_new_baranyi) %>%
+    rbind(data_new_logistic)
+
+  data_all_with_lag$lag[data_all_with_lag$lag < 0] = NA
+  expect_equal(get_all_methods_lag(test_df, biomass_incr_threshold, pars ), data_all_with_lag )
+})
+
+
+context("Test the calc_lag function")
+test_that("Calculating lag works", {
+
+  # data
+  method <- "tangent"
+  test_df <- database 
+if (!("curve_id" %in% names(test_df))) {
+    test_df$curve_id = "growth.curve"
+  }
+ pars <- NULL
+  if (is.null(pars)) {
+    pars <- get_def_pars()
+  }
+  n0 <- test_df %>%
+    group_by(curve_id) %>%
+    arrange(time) %>%
+    summarise(n0 = get_n0(biomass, pars$n0_method)) %>%
+    ungroup() %>%
+    mutate(log_n0 = log(n0))
+
+
+  if (method == "tangent") {
+    sel_tangent_method <- pars$tangent_method
+    data_new <- fit_exp_lag(test_df,
+                                   n0 = n0,
+                                   tangent_method = sel_tangent_method,
+                                   curve_points = pars$curve_points)
+    data_new <- data_new %>%
+      select(time, biomass, curve_id, lag, line_slope, line_intercept, tangent_point) %>%
+      mutate(lag_calculation_method = "tangent",
+             log_biomass = log(biomass),
+             predicted_data = NA,
+             diff = NA,
+             second_deriv_b = NA,
+             threshold = NA) %>%
+      select(time, biomass, log_biomass, curve_id, lag, line_slope, line_intercept, lag_calculation_method, predicted_data, diff, second_deriv_b, tangent_point, threshold)
+
+
+  } else if (method == "biomass increase") {
+    sel_threshold <- pars$threshold
+    data_new <- lag_biomass_incr(test_df,
+                                             threshold = sel_threshold,
+                                             n0 = n0)
+    data_new <- data_new %>%
+      select(time, biomass, curve_id, lag) %>%
+      mutate(lag_calculation_method = "biomass increase",
+             log_biomass = log(biomass),
+             predicted_data = NA,
+             second_deriv_b = NA,
+             line_intercept = NA,
+             line_slope = NA,
+             tangent_point = NA,
+             diff = NA) %>%
+      left_join(n0, by = "curve_id") %>%
+      mutate(threshold = n0 + sel_threshold) %>%
+      select(time, biomass, log_biomass, curve_id, lag, line_slope, line_intercept, lag_calculation_method, predicted_data, diff, second_deriv_b, tangent_point, threshold)
+
+  } else if (method == "max growth acceleration") {
+    data_new <-  fit_max_infl_lag(test_df)
+    data_new <- data_new %>%
+      select(time, biomass, log_biomass, curve_id, lag, second_deriv_b) %>%
+      mutate(lag_calculation_method = "max growth acceleration",
+             line_intercept = NA,
+             line_slope = NA,
+             predicted_data = NA,
+             diff = NA,
+             tangent_point = NA,
+             threshold= NA) %>%
+      select(time, biomass, log_biomass, curve_id, lag, line_slope, line_intercept, lag_calculation_method, predicted_data, diff, second_deriv_b, tangent_point, threshold)
+
+  } else if (method == "parameter fitting to a model") {
+    sel_model <- pars$model
+    if (sel_model == "logistic") {
+      data_new <- calc_lagistic_fit_lag(test_df, n0,
+                                            init_gr_rate = pars$init_gr_rate,
+                                            init_K = pars$init_K,
+                                            init_lag = pars$init_lag,
+                                            algorithm = pars$algorithm,
+                                            max_iter = pars$max_iter)
+
+    } else if (sel_model == "baranyi") {
+      data_new <- calc_baranyi_fit_lag(test_df,
+                                           n0,
+                                           init_lag = pars$init_lag,
+                                           init_gr_rate = pars$init_gr_rate,
+                                           algorithm = pars$algorithm,
+                                           max_iter = pars$max_iter) %>%
+        mutate(lag_calculation_method = "Fitting lagged baranyi")
+
+    } else {
+      error("model not implemented")
+    }
+    data_new <- data_new %>%
+      select(time, biomass, curve_id, lag, predicted_data = predicted) %>%
+      mutate(lag_calculation_method = "parameter fitting to a model",
+             log_biomass = log(biomass),
+             diff = NA,
+             second_deriv_b = NA,
+             line_intercept = NA,
+             line_slope = NA,
+             tangent_point = NA,
+             threshold = NA) %>%
+      select(time, biomass, log_biomass, curve_id, lag, line_slope, line_intercept, lag_calculation_method, predicted_data, diff, second_deriv_b, tangent_point, threshold)
+
+  }
+  data_new$lag[data_new$lag < 0] = NA
+  data_new <- data_new %>%
+    left_join(n0) #%>%
+  
+  expect_equal(calc_lag(test_df, method, pars ), data_new )
+})
