@@ -208,3 +208,59 @@ test_that("Biomass increase method works", {
   expect_equal(lag_biomass_incr(test_df, threshold, n0 ), data_new )
 })
 
+context("Test the plot_data function")
+
+test_that("Plotting growth curve works", {
+
+  # data
+
+  test_df <- database
+  data_new <- test_df %>%
+    mutate(log10_biomass = log10(biomass))
+  g_test <- ggplot(data_new)  +
+    geom_line(aes(x = time, y = log10_biomass), col = "blue") +
+    geom_point(aes(x = time, y = log10_biomass), col = "blue") +
+    xlab("time [h]") +
+    ylab("Log10(biomass)") +
+    theme(axis.text.y.right = element_text(colour="black"),
+          axis.text.y = element_text(colour="blue"),
+          axis.title.y = element_text(colour="blue"),
+          axis.title.y.right = element_text(colour="black"))
+
+  expect_equal(plot_data(test_df), g_test)
+
+})
+
+
+ context("Test the fit_exp_lag function")
+test_that("Fitting biomass data to lag with tangent method works", {
+
+  # data
+  test_df <- database 
+  if (!("curve_id" %in% names(test_df))) {
+    test_df$curve_id <- "growth.curve"
+  }
+    n0 <- test_df %>%
+    group_by(curve_id) %>%
+    arrange(time) %>%
+    summarise(n0 = get_n0(biomass, "minimal.observation")) %>%
+    ungroup() %>%
+    mutate(log_n0 = log(n0))
+  tangent_method <- "local.regression"
+  curve_points <- 3
+  data_new <- test_df %>% filter(FALSE) %>% mutate(lag = numeric(0), line_intercept = numeric(0), line_slope = numeric(0))
+  for (this_curve_id in unique(test_df$curve_id)) {
+    data_this_curve <- test_df %>% filter(curve_id == this_curve_id)
+    this_n0 <- n0 %>% filter(curve_id == this_curve_id) %>% pull(n0)
+    lag_obj <- fit_exp_lag_to_curve(data_this_curve, this_n0, tangent_method, curve_points)
+    data_this_curve <- data_this_curve %>%
+      mutate(lag = round(lag_obj$lag,1)) %>%
+      mutate(line_intercept = lag_obj$line_intercept,
+             line_slope = lag_obj$line_slope) %>%
+      left_join(lag_obj$tangent_points)
+    data_new <- rbind(data_new, data_this_curve)
+  }
+
+  data_new$predicted <- NA
+  expect_equal(fit_exp_lag(test_df, tangent_method, n0, curve_points), data_new )
+})
