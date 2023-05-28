@@ -208,27 +208,6 @@ test_that("Biomass increase method works", {
   expect_equal(lag_biomass_incr(test_df, threshold, n0 ), data_new )
 })
 
-context("Test the plot_data function")
-
-test_that("Plotting growth curve works", {
-
-  # data
-
-  test_df <- database
-  data_new <- test_df %>%
-    mutate(log10_biomass = log10(biomass))
-    g <- ggplot(data_new)  +
-    geom_line(aes(x = time, y = log10_biomass), col = "blue") +
-    geom_point(aes(x = time, y = log10_biomass), col = "blue") +
-    xlab("time") +
-    ylab("Log10(biomass)") +
-    theme(axis.text.y.right = element_text(colour="black"),
-          axis.text.y = element_text(colour="blue"),
-          axis.title.y = element_text(colour="blue"),
-          axis.title.y.right = element_text(colour="black"))
-
-  expect_equal(plot_data(test_df), g)
-})
 
 
  context("Test the fit_exp_lag function")
@@ -264,56 +243,47 @@ test_that("Fitting biomass data to lag with tangent method works", {
   expect_equal(fit_exp_lag(test_df, tangent_method, n0, curve_points), data_new )
 })
 
- context("Test the calc_lagistic_fit_lag function")
-test_that("Calculating lag based on fitting logistic model to data works", {
+context("Test the get_init_pars_logistic function")
+test_that("Getting initial parameters for logistic growth curve works", {
 
   # data
-  test_df <- database 
-  if (!("curve_id" %in% names(test_df))) {
-    test_df$curve_id = NA
-  }
-    n0 <- test_df %>%
-    group_by(curve_id) %>%
-    arrange(time) %>%
-    summarise(n0 = get_n0(biomass, "minimal.observation")) %>%
-    ungroup() %>%
-    mutate(log_n0 = log(n0))
-  
-  return_all_params <- FALSE
-  init_gr_rate <- NULL
+  test_df <- database
   init_K <- NULL
   init_lag <- NULL
-  algorithm <- "auto"
-  max_iter <- 100
+  init_gr_rate <- NULL
+  this_n0 <- get_n0(test_df$biomass, "minimal.observation")
   min_b <- 0.2
   min_a <- 0.8
-  i <- 0
-  fiting_list <- list()
-  data_new <- test_df %>% filter(FALSE) %>% mutate( time = numeric(0), biomass = numeric(0), curve_id = character(0), lag = numeric(0), log_info = character(0))
-  for (this_curve_id in unique(test_df$curve_id)) {
-    i <- i + 1
-    data_this_curve <- test_df %>% filter(curve_id == this_curve_id) %>% select(time, biomass, curve_id)
-    this_n0 <- n0 %>% filter(curve_id == this_curve_id) %>% pull(n0)
-    init_pars <- get_init_pars_logistic(data_this_curve, this_n0, init_K, init_lag, init_gr_rate)
-    this_fit_obj <- calc_lag_fit_to_logistic_with_lag(gr_curve = data_this_curve,
-                                                                     n0 = this_n0,
-                                                                     init_gr_rate = init_pars$init_gr_rate,
-                                                                     init_K = init_pars$init_K,
-                                                                     init_lag = init_pars$init_lag,
-                                                                     algorithm = algorithm,
-                                                                     max_iter = max_iter)
-    data_this_curve <- data_this_curve %>%
-      mutate(lag = round(this_fit_obj$lag_N, 1))
-    data_this_curve$predicted = if (!any(is.na(this_fit_obj$nls_a))) {predict(this_fit_obj$nls_a, data_this_curve) } else {data_this_curve$predicted = NA}
-    data_new <- rbind(data_new, data_this_curve)
-
-    fiting_list[[i]] <- this_fit_obj$nls_a
+  
+if (is.null(init_K)) {
+    max_this_data <- max(test_df$biomass, na.rm = TRUE)
+    init_K <- max_this_data %>% as.numeric()
+  }
+  if (is.null(init_lag)) {
+    init_lag <- calc_lag(test_df, method = "tangent", pars = get_def_pars()) %>% pull(lag) %>% unique() %>% as.numeric()
   }
 
-  if (!return_all_params) {
-    data_new <- data_new
-  } else {
-    data_new <- list(data_new = data_new, mod_fit = fiting_list)
+  if (is.null(init_gr_rate)) {
+    data_this_curve_exp <- test_df %>%
+      mutate(
+        max_biomass = max(test_df$biomass),
+        min_threshold = this_n0 + min_b*(max_biomass - this_n0),
+        max_threshold = this_n0 + min_a*(max_biomass - this_n0)) %>%
+      # take only the points that are in between min and max
+      filter(biomass <= max_threshold & biomass >= min_threshold)
+    data_this_curve_exp$logdata = log(data_this_curve_exp$biomass/this_n0)
+    if (nrow(data_this_curve_exp %>% filter(!is.na(time) & !is.na(logdata)) > 0)) {
+      mod = lm(logdata ~ time, data = data_this_curve_exp)
+      # this growth rate is assuming an exponential model so it will be generally underestimated
+      init_gr_rate = mod$coefficients[2] %>% unname()
+      # we have real r = r(1-N/K) so let us take
+      n_mid = median(data_this_curve_exp$biomass)
+      init_gr_rate = init_gr_rate/(1-n_mid/init_K)
+    } else {
+      init_gr_rate = 0.1
+    }
+    #data_this_curve_exp$predicted = predict(mod, data_this_curve_exp)
   }
-  expect_equal(calc_lagistic_fit_lag(test_df, n0, init_gr_rate, init_K, init_lag, algorithm, max_iter, return_all_params, min_b, min_a ), data_new )
+  data_new <- list(init_K = init_K, init_lag = init_lag, init_gr_rate = init_gr_rate)
+  expect_equal(get_init_pars_logistic(test_df, this_n0, init_K, init_lag, init_gr_rate, min_b, min_a), data_new )
 })
