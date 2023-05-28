@@ -349,6 +349,8 @@ test_that("Choosing the best nls model to fit to logistic curve works", {
   init_K <- NULL
   init_lag <- NULL
   init_gr_rate <- NULL
+  max_iter <- 100
+  lower_bound <- c(0,0,0, 0)
  tryCatch(
     expr =
       {nlsres_LM <- nlsLM(formula = biomass ~ n0 + (time >= lag)*n0*(-1+K*exp(gr_rate*(time-lag))/(K - n0 + n0*exp(gr_rate*(time - lag)))),
@@ -381,7 +383,7 @@ test_that("Choosing the best nls model to fit to logistic curve works", {
       nls_PORT <<- NA
     })
   nls_a <- compare_algorithms(nls_LM_no_bound, nls_PORT, nlsres_LM)
-   expect_equal(choose_lag_fit_algorithm_logistic(test_df, n0, init_gr_rate, init_K, init_lag, max_iter = 100, lower_bound = c(0,0,0, 0)), nls_a )
+   expect_equal(choose_lag_fit_algorithm_logistic(test_df, n0, init_gr_rate, init_K, init_lag, max_iter, lower_bound), nls_a )
 })
 
 
