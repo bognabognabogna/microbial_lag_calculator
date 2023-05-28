@@ -217,18 +217,17 @@ test_that("Plotting growth curve works", {
   test_df <- database
   data_new <- test_df %>%
     mutate(log10_biomass = log10(biomass))
-  g_test <- ggplot(data_new)  +
+    g <- ggplot(data_new)  +
     geom_line(aes(x = time, y = log10_biomass), col = "blue") +
     geom_point(aes(x = time, y = log10_biomass), col = "blue") +
-    xlab("time [h]") +
+    xlab("time") +
     ylab("Log10(biomass)") +
     theme(axis.text.y.right = element_text(colour="black"),
           axis.text.y = element_text(colour="blue"),
           axis.title.y = element_text(colour="blue"),
           axis.title.y.right = element_text(colour="black"))
 
-  expect_equal(plot_data(test_df), g_test)
-
+  expect_equal(plot_data(test_df), g)
 })
 
 
@@ -263,4 +262,58 @@ test_that("Fitting biomass data to lag with tangent method works", {
 
   data_new$predicted <- NA
   expect_equal(fit_exp_lag(test_df, tangent_method, n0, curve_points), data_new )
+})
+
+ context("Test the calc_lagistic_fit_lag function")
+test_that("Calculating lag based on fitting logistic model to data works", {
+
+  # data
+  test_df <- database 
+  if (!("curve_id" %in% names(test_df))) {
+    test_df$curve_id = NA
+  }
+    n0 <- test_df %>%
+    group_by(curve_id) %>%
+    arrange(time) %>%
+    summarise(n0 = get_n0(biomass, "minimal.observation")) %>%
+    ungroup() %>%
+    mutate(log_n0 = log(n0))
+  
+  return_all_params <- FALSE
+  init_gr_rate <- NULL
+  init_K <- NULL
+  init_lag <- NULL
+  algorithm <- "auto"
+  max_iter <- 100
+  min_b <- 0.2
+  min_a <- 0.8
+  i <- 0
+  fiting_list <- list()
+  data_new <- test_df %>% filter(FALSE) %>% mutate( time = numeric(0), biomass = numeric(0), curve_id = character(0), lag = numeric(0), log_info = character(0))
+  for (this_curve_id in unique(test_df$curve_id)) {
+    i <- i + 1
+    data_this_curve <- test_df %>% filter(curve_id == this_curve_id) %>% select(time, biomass, curve_id)
+    this_n0 <- n0 %>% filter(curve_id == this_curve_id) %>% pull(n0)
+    init_pars <- get_init_pars_logistic(data_this_curve, this_n0, init_K, init_lag, init_gr_rate)
+    this_fit_obj <- calc_lag_fit_to_logistic_with_lag(gr_curve = data_this_curve,
+                                                                     n0 = this_n0,
+                                                                     init_gr_rate = init_pars$init_gr_rate,
+                                                                     init_K = init_pars$init_K,
+                                                                     init_lag = init_pars$init_lag,
+                                                                     algorithm = algorithm,
+                                                                     max_iter = max_iter)
+    data_this_curve <- data_this_curve %>%
+      mutate(lag = round(this_fit_obj$lag_N, 1))
+    data_this_curve$predicted = if (!any(is.na(this_fit_obj$nls_a))) {predict(this_fit_obj$nls_a, data_this_curve) } else {data_this_curve$predicted = NA}
+    data_new <- rbind(data_new, data_this_curve)
+
+    fiting_list[[i]] <- this_fit_obj$nls_a
+  }
+
+  if (!return_all_params) {
+    data_new <- data_new
+  } else {
+    data_new <- list(data_new = data_new, mod_fit = fiting_list)
+  }
+  expect_equal(calc_lagistic_fit_lag(test_df, n0, init_gr_rate, init_K, init_lag, algorithm, max_iter, return_all_params, min_b, min_a ), data_new )
 })
