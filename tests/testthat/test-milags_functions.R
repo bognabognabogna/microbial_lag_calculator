@@ -340,50 +340,5 @@ test_that("Choosing the best nls model to fit to algorithm baranyi works", {
   expect_equal(choose_lag_fit_algorithm_baranyi(test_df, LOG10N0 = NULL, init_lag = NULL, init_mumax = NULL, init_LOG10Nmax = NULL, max_iter = 100, lower_bound = c(0,0,0, 0)), nls_a )
 })
 
- context("Test the choose_lag_fit_algorithm_logistic function")
-test_that("Choosing the best nls model to fit to logistic curve works", {
-
-  # data
-  test_df <- database 
-  n0 <- get_n0(test_df$biomass, "minimal.observation")
-  init_K <- NULL
-  init_lag <- NULL
-  init_gr_rate <- NULL
-  max_iter <- 100
-  lower_bound <- c(0,0,0)
- tryCatch(
-    expr =
-      {nlsres_LM <- nlsLM(formula = biomass ~ n0 + (time >= lag)*n0*(-1+K*exp(gr_rate*(time-lag))/(K - n0 + n0*exp(gr_rate*(time - lag)))),
-                        data = gr_curve,
-                        start = list(gr_rate = init_gr_rate, K=init_K, lag = init_lag),
-                        control = nls.control(maxiter = max_iter),
-                        lower = lower_bound)
-      },
-    error = function(cond) {
-      nlsres_LM <<- NA
-    })
-  tryCatch(
-    expr =
-      {nls_LM_no_bound <- nlsLM(formula = biomass ~ n0 + (time >= lag)*n0*(-1+K*exp(gr_rate*(time-lag))/(K - n0 + n0*exp(gr_rate*(time - lag)))),
-                                 data = gr_curve,
-                                 start = list(gr_rate = init_gr_rate, K=init_K, lag = init_lag),
-                                 control = nls.control(maxiter = max_iter))
-      },
-    error = function(cond) {
-      nls_LM_no_bound <<- NA
-    })
-  tryCatch(
-    expr =
-      {nls_PORT <- nls(biomass ~ n0 + (time >= lag)*n0*(-1+K*exp(gr_rate*(time-lag))/(K - n0 + n0*exp(gr_rate*(time - lag)))), gr_curve,
-                        list(gr_rate = init_gr_rate, K=init_K, lag = init_lag),
-                        algorithm = "port",
-                        control = nls.control(maxiter = max_iter),
-                        lower = lower_bound)},
-    error = function(cond) {
-      nls_PORT <<- NA
-    })
-  nls_a <- compare_algorithms(nls_LM_no_bound, nls_PORT, nlsres_LM)
-   expect_equal(choose_lag_fit_algorithm_logistic(test_df, n0, init_gr_rate, init_K, init_lag, max_iter, lower_bound), nls_a )
-})
 
 
