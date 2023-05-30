@@ -124,8 +124,12 @@ xlab("Time") +
 ylab("CFU")
 ```
 
-And the lag can be calculated and visualised e.g.:
+And the lag can be calculated 
+``` r
+get_lag(example, method = "tangent", pars = parameters.default)
+```
 
+Additionally, the input growth curve can be visualised together with the lag duration calculation rationale: 
 ``` r
 lag.output = calc_lag(example, method = "tangent", pars = parameters.default)
 plot_lag_fit(lag.output)
