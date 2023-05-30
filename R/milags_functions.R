@@ -758,9 +758,46 @@ plot_lag_fit <- function(data_new, print_lag_info = TRUE) {
 
 
 
+#' get_lag
+#'
+#' The most basic function that calculates lags based on growth curve data, selected method and parameters.
+#' It uses calc_lag function and strips the results to only get lag parameter for each growth curve id.
+#' @param data a data frame with two required columns names: "time" and "biomass",and one optional column: "curve_id"
+#' This is data from may come from multiple growth curves
+#' @param method method of lag calculation, choose one of the follwoing: "exponential", "biomass increase", "max growth acceleration", "parameter fitting to a model"
+#' @param pars a list of parameters. Get.default.parameters function can be used to get the default ones. Otherwise create your onwn list with the following names: \n
+#' - model: if method = "parameter fitting to a model" , one of the following models needs to be chosen: "logistic", "baranyi" \n
+#' - n0_method: first.observation" if the first point is taken as the initial biomass or
+#' "minimal.observation" if the minimal biomass is taken is the initial point.
+#' In "healthy" growth curves these options should be equivalent
+#' but sometimes a drop in OD/biomass is observed at the beginning of a growth curve.
+#' In this case it is not obvious what to assume the initial biomass is. \n
+#' - tangent_method "local.regression" (if the tangent is fitted to a number of points around the maximal growth rate)
+#' or "to.point" (if the tangent is fitted only to the point where the growth rate is maximal); defaults to "to.point"
+#' - threshold: A value of the biomass increase that we can surely associate with the end of the lag phase rather than random variation durinh the lag. Defaults to 10^2 \n
+#' - curve_points: if tangent.method = "local.regression" then curve_points is the number of points the line is fitted to;
+#' defaults to 3 i.e. the point with the maximal uptake rate one point before and one point after \n
+#' - init_gr_rate: if logistic model is fitted. Defaults to  NULL in which case the initial value will be based on the data \n
+#' - init_lag: if a logistic model is fitted, Defaults to NULL in which case the initial value will be based on the data \n
+#' - algorithm: if method = "parameter fitting to a model", nls algorithm to run the model fit; defaults to "auto" which will choose the best between bounded and unbounded "Levenberg-Marquardt" and bounded "port" \n
+#' - max_iter =  if method = "parameter fitting to a model", the maximum number of nls iterations, defaults to  100
+#' @returns lag per each curve_id
+#' @export
+get_lag <- function(data, method, pars) {
+  data_extended = calc_lag(data, method, pars)
+  lags_data = data_extended %>%
+    group_by(curve_id) %>% 
+    summarise(lag = unique(lag)) %>% 
+    ungroup()
+  return(lags_data)
+}
+
+
+
+
 #' calc_lag
 #'
-#' The main function that calculates lags based on growth curve data, selected method and parameters
+#' The main function that calculates lags based on growth curve data, selected method and parameters and returns an extended growth rate data frame (extended by multiple columns with parameters related to lag calculation)
 #' @param data a data frame with two required columns names: "time" and "biomass",and one optional column: "curve_id"
 #' This is data from may come from multiple growth curves
 #' @param method method of lag calculation, choose one of the follwoing: "exponential", "biomass increase", "max growth acceleration", "parameter fitting to a model"
@@ -1019,7 +1056,7 @@ smooth_data <- function(data, smooth_kind = "3RS3R") {
 
 
 #' cut_the_data
-#' Smoothens growth curves data
+#' Subsets the data frame containing only the observations up to the specified maximum time
 #' @param data a data frame with two required columns names: "time" and "biomass",and one optional column: "curve_id"
 #' This is data from may come from multiple growth curves
 #' @param max_time max. time at which we want to cut the growth curve data
@@ -1032,12 +1069,13 @@ cut_the_data <- function(data, max_time) {
 
 
 
-#' get_theme (not exported)
+#' get_theme
 #'
-#' This function sets a ggplot theme without grid
+#' This function sets a ggplot theme without grid.
+#' The theme removes the major and minor grid lines, sets a white background with a gray border and adjusts the text size.
 #' @param text_size defaults to 12
 #' @returns a ggplot theme
-
+#' @export
 get_theme <- function(text_size = 12) {
   my_theme <- theme(
     panel.grid.major = element_blank(),#element_line(colour = "black", size = 0.05),
