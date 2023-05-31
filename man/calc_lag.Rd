@@ -13,20 +13,20 @@ This is data from may come from multiple growth curves}
 \item{method}{method of lag calculation, choose one of the follwoing: "exponential", "biomass increase", "max growth acceleration", "parameter fitting to a model"}
 
 \item{pars}{a list of parameters. Get.default.parameters function can be used to get the default ones. Otherwise create your onwn list with the following names: \cr
-- model: if method = "parameter fitting to a model" , one of the following models needs to be chosen: "logistic", "baranyi" \\n
+- model: if method = "parameter fitting to a model" , one of the following models needs to be chosen: "logistic", "baranyi" \cr
 - n0_method: first.observation" if the first point is taken as the initial biomass or
 "minimal.observation" if the minimal biomass is taken is the initial point.
 In "healthy" growth curves these options should be equivalent
 but sometimes a drop in OD/biomass is observed at the beginning of a growth curve.
-In this case it is not obvious what to assume the initial biomass is. \\n
+In this case it is not obvious what to assume the initial biomass is. \cr
 - tangent_method "local.regression" (if the tangent is fitted to a number of points around the maximal growth rate)
 or "to.point" (if the tangent is fitted only to the point where the growth rate is maximal); defaults to "to.point"
-- threshold: A value of the biomass increase that we can surely associate with the end of the lag phase rather than random variation durinh the lag. Defaults to 10^2 \\n
+- threshold: A value of the biomass increase that we can surely associate with the end of the lag phase rather than random variation durinh the lag. Defaults to 10^2 \cr
 - curve_points: if tangent.method = "local.regression" then curve_points is the number of points the line is fitted to;
-defaults to 3 i.e. the point with the maximal uptake rate one point before and one point after \\n
-- init_gr_rate: if logistic model is fitted. Defaults to  NULL in which case the initial value will be based on the data \\n
-- init_lag: if a logistic model is fitted, Defaults to NULL in which case the initial value will be based on the data \\n
-- algorithm: if method = "parameter fitting to a model", nls algorithm to run the model fit; defaults to "auto" which will choose the best between bounded and unbounded "Levenberg-Marquardt" and bounded "port" \\n 
+defaults to 3 i.e. the point with the maximal uptake rate one point before and one point after \cr
+- init_gr_rate: if logistic model is fitted. Defaults to  NULL in which case the initial value will be based on the data \cr
+- init_lag: if a logistic model is fitted, Defaults to NULL in which case the initial value will be based on the data \cr
+- algorithm: if method = "parameter fitting to a model", nls algorithm to run the model fit; defaults to "auto" which will choose the best between bounded and unbounded "Levenberg-Marquardt" and bounded "port" \cr 
 - max_iter =  if method = "parameter fitting to a model", the maximum number of nls iterations, defaults to  100}
 }
 \value{
