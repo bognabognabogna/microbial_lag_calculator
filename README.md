@@ -60,8 +60,8 @@ and the local vesrion of the shiny application by further running:
 
 ``` r
 #install.packages("shiny")
-library(shiny)
-runApp('~/shiny_app/lag_calulator/app.R')
+#library(shiny)
+#runApp('~/shiny_app/lag_calulator/app.R')
 ```
 ## Input data
 
