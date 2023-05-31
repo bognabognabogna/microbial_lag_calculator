@@ -12,7 +12,7 @@ This is data from may come from multiple growth curves}
 
 \item{method}{method of lag calculation, choose one of the follwoing: "exponential", "biomass increase", "max growth acceleration", "parameter fitting to a model"}
 
-\item{pars}{a list of parameters. Get.default.parameters function can be used to get the default ones. Otherwise create your onwn list with the following names: \\n
+\item{pars}{a list of parameters. Get.default.parameters function can be used to get the default ones. Otherwise create your onwn list with the following names: \cr
 - model: if method = "parameter fitting to a model" , one of the following models needs to be chosen: "logistic", "baranyi" \\n
 - n0_method: first.observation" if the first point is taken as the initial biomass or
 "minimal.observation" if the minimal biomass is taken is the initial point.
