@@ -518,3 +518,25 @@ if (!("curve_id" %in% names(test_df))) {
   
   expect_equal(calc_lag(test_df, method, pars ), data_new )
 })
+
+context("Test the get_lag function")
+test_that("Getting lag duration value works", {
+
+  # data
+  method <- "tangent"
+  test_df <- database 
+  if (!("curve_id" %in% names(test_df))) {
+    test_df$curve_id = "growth.curve"
+  }
+  pars <- get_def_pars()
+  data_extended = calc_lag(test_df, method, pars)
+  lags_data = data_extended %>%
+    group_by(curve_id) %>% 
+    summarise(lag = unique(lag)) %>% 
+    ungroup()
+  
+  expect_equal(get_lag(test_df, method, pars ), lags_data )
+})
+
+
+
