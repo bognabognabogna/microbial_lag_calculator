@@ -746,8 +746,8 @@ plot_lag_fit <- function(data_new, print_lag_info = TRUE) {
     #ylim(c(min(data.new$log.10.biomass), max(data.new$log.10.biomass))) +
     facet_grid(curve_id ~ lag_calculation_method, scales = "free_y") +
     theme(axis.text.y.right = element_text(colour = "black"),
-          axis.text.y = element_text(colour = "blue"),
-          axis.title.y = element_text(colour = "blue"),
+          axis.text.y = element_text(colour = "black"),
+          axis.title.y = element_text(colour = "black"),
           axis.title.y.right = element_text(colour = "black"))
 
   if (print_lag_info) {
