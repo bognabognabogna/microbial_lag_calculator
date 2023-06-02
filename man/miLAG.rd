@@ -18,7 +18,7 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Bogna J. Smug \email{bogna.smug@uj.edu.pl} (\href{https://orcid.org/0000-0001-9364-163X}{ORCID})
+\strong{Main author}: Bogna J. Smug \email{bogna.smug@uj.edu.pl} (\href{https://orcid.org/0000-0001-9364-163X}{ORCID})
 
 Authors:
 \itemize{
