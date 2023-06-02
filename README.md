@@ -2,6 +2,7 @@
 # miLAG: microbial lag phase duration analysis
 ![licence](https://img.shields.io/badge/Licence-GPL--3-blue.svg)
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](http://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/)
+[![codecov](https://codecov.io/gh/jungwirt/microbial_lag_calculator/branch/main/graph/badge.svg?token=HR39P6M4OW)](https://codecov.io/gh/jungwirt/microbial_lag_calculator)
 
 
 Authors: Bogna J. Smug [<img src="https://orcid.org/assets/vectors/orcid.logo.icon.svg" width="16px" height="16px">][2],
@@ -52,15 +53,15 @@ GitHub with these R commands:
 ``` r
 #install.packages("remotes")
 library(remotes)
-install_github("https://github.com/bognabognabogna/microbial_lag_calulator", dependencies = TRUE)
+install_github("https://github.com/bognabognabogna/microbial_lag_calulator", dependencies = TRUE, force = TRUE)
 ```
 
 and the local vesrion of the shiny application by further running:
 
 ``` r
 #install.packages("shiny")
-library(shiny)
-runApp('~/shiny_app/lag_calulator/app.R')
+#library(shiny)
+#runApp('~/shiny_app/lag_calulator/app.R')
 ```
 ## Input data
 
@@ -123,10 +124,14 @@ xlab("Time") +
 ylab("CFU")
 ```
 
-And the lag can be calculated and visualised e.g.:
-
+And the lag can be calculated 
 ``` r
-lag.output = calc_lag(example, method = "tangent", pars = parameters.default)
+get_lag(example, method = "max growth acceleration", pars = parameters.default)
+```
+
+Additionally, the input growth curve can be visualised together with the lag duration calculation rationale: 
+``` r
+lag.output = calc_lag(example, method = "max growth acceleration", pars = parameters.default)
 plot_lag_fit(lag.output)
 ```
 

@@ -4,7 +4,7 @@
 \alias{compare_algorithms}
 \title{compare_algorithms}
 \usage{
-compare_algorithms(nls_LM_no_bound, nls_PORT, nls_LM)
+compare_algorithms(nls_LM_no_bound, nls_PORT, nlsres_LM)
 }
 \arguments{
 \item{nls_LM_no_bound}{first object resulting from running nls}

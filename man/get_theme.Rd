@@ -2,9 +2,7 @@
 % Please edit documentation in R/milags_functions.R
 \name{get_theme}
 \alias{get_theme}
-\title{get_theme (not exported)
-This function sets a ggplot theme without grid
-The theme removes the major and minor grid lines, sets a white background with a gray border and adjusts the text size.}
+\title{get_theme}
 \usage{
 get_theme(text_size = 12)
 }
@@ -15,7 +13,6 @@ get_theme(text_size = 12)
 a ggplot theme
 }
 \description{
-get_theme (not exported)
-This function sets a ggplot theme without grid
+This function sets a ggplot theme without grid.
 The theme removes the major and minor grid lines, sets a white background with a gray border and adjusts the text size.
 }
