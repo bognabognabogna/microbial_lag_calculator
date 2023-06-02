@@ -51,9 +51,10 @@ You can install the latest development version of `miLag` package from
 GitHub with these R commands:
 
 ``` r
-#install.packages("remotes")
-library(remotes)
-install_github("https://github.com/bognabognabogna/microbial_lag_calulator", dependencies = TRUE, force = TRUE)
+if (!require("remotes"))
+  install.packages("remotes")
+
+remotes::install_github("https://github.com/bognabognabogna/microbial_lag_calulator", dependencies = TRUE, force = TRUE)
 ```
 
 and the local vesrion of the shiny application by further running:
