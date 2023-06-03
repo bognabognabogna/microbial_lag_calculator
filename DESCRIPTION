@@ -6,6 +6,7 @@ Date: 2023-05-31
 Author: Bogna Smug: bogna.smug@uj.edu.pl
 Maintainer: Bogna Smug <bogna.smug@uj.edu.pl>
 Description: A shiny-based application and R package for calculating the duration of microbial lag phase. 
-License: Please cite: J. Smug, B., Opalek, M., Necki, M., & Wloch-Salamon, D. (2023). Microbial lag calculator (Version 1.0.0) [Computer software]. Please note the authors take no responsibility for the results. Calculating lags is tricky and the result may not always have a strict biological interpretation. 
+License: GPL-3
+Please cite: J. Smug, B., Opalek, M., Necki, M., & Wloch-Salamon, D. (2023). Microbial lag calculator (Version 1.0.0).
 RoxygenNote: 7.2.3
 Depends: R (>= 4.1.0), dplyr (>= 1.0.8), ggplot2 (>= 3.4.1), testthat (>= 3.1.8)
