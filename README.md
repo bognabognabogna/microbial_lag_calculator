@@ -51,17 +51,18 @@ You can install the latest development version of `miLag` package from
 GitHub with these R commands:
 
 ``` r
-#install.packages("remotes")
-library(remotes)
-install_github("https://github.com/bognabognabogna/microbial_lag_calulator", dependencies = TRUE, force = TRUE)
+if (!require("remotes"))
+  install.packages("remotes")
+
+remotes::install_github("https://github.com/bognabognabogna/microbial_lag_calulator", dependencies = TRUE, force = TRUE)
 ```
 
 and the local vesrion of the shiny application by further running:
 
 ``` r
 #install.packages("shiny")
-library(shiny)
-runApp('~/shiny_app/lag_calulator/app.R')
+#library(shiny)
+#runApp('~/shiny_app/lag_calulator/app.R')
 ```
 ## Input data
 
@@ -126,12 +127,12 @@ ylab("CFU")
 
 And the lag can be calculated 
 ``` r
-get_lag(example, method = "tangent", pars = parameters.default)
+get_lag(example, method = "max growth acceleration", pars = parameters.default)
 ```
 
 Additionally, the input growth curve can be visualised together with the lag duration calculation rationale: 
 ``` r
-lag.output = calc_lag(example, method = "tangent", pars = parameters.default)
+lag.output = calc_lag(example, method = "max growth acceleration", pars = parameters.default)
 plot_lag_fit(lag.output)
 ```
 

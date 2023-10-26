@@ -359,19 +359,19 @@ test_that("Getting lag by all methods works", {
   data_new_logistic <- calc_lag(data = test_df,
                                     method = "parameter fitting to a model",
                                     pars = pars_logistic) %>%
-    mutate(lag_calculation_method = "par. fitting\nto logistic model")
+    mutate(lag_calculation_method = "par. fitting to logistic model")
 
   pars_baranyi <- pars
   pars_baranyi$model <- "baranyi"
   data_new_baranyi <- calc_lag(data = test_df,
                                    method = "parameter fitting to a model",
                                    pars = pars_baranyi) %>%
-    mutate(lag_calculation_method = "par. fitting\nto baranyi model")
+    mutate(lag_calculation_method = "par. fitting to baranyi model")
 
   data_new_max_infl <- calc_lag(data = test_df,
                                     method = "max growth acceleration",
                                     pars = pars) %>%
-    mutate(lag_calculation_method = "max\ngrowth acceleration")
+    mutate(lag_calculation_method = "max growth acceleration")
 
   pars_to_point <- pars
   pars_to_point$tangent_method <- "to.point"
@@ -379,20 +379,20 @@ test_that("Getting lag by all methods works", {
                                 method = "tangent",
                                 pars = pars_to_point
   ) %>%
-    mutate(lag_calculation_method = "tangent to \nmax growth point")
+    mutate(lag_calculation_method = "tangent to max growth point")
 
   pars_local_regr <- pars
   pars_local_regr$tangent_method <- "local.regression"
   data_new_exp2 <- calc_lag(data = test_df,
                                  method = "tangent",
                                  pars = pars_local_regr)%>%
-    mutate(lag_calculation_method = "tangent to \nmax growth line")
+    mutate(lag_calculation_method = "tangent to max growth line")
 
   pars$threshold <- biomass_incr_threshold
   data_new_biominc <-  calc_lag(data = test_df,
                                     method = "biomass increase",
                                     pars = pars)%>%
-    mutate(lag_calculation_method = "biomass \nincrease")
+    mutate(lag_calculation_method = "biomass increase")
 
 
   data_all_with_lag <- data_new_max_infl %>%
@@ -518,3 +518,25 @@ if (!("curve_id" %in% names(test_df))) {
   
   expect_equal(calc_lag(test_df, method, pars ), data_new )
 })
+
+context("Test the get_lag function")
+test_that("Getting lag duration value works", {
+
+  # data
+  method <- "tangent"
+  test_df <- database 
+  if (!("curve_id" %in% names(test_df))) {
+    test_df$curve_id = "growth.curve"
+  }
+  pars <- get_def_pars()
+  data_extended = calc_lag(test_df, method, pars)
+  lags_data = data_extended %>%
+    group_by(curve_id) %>% 
+    summarise(lag = unique(lag)) %>% 
+    ungroup()
+  
+  expect_equal(get_lag(test_df, method, pars ), lags_data )
+})
+
+
+

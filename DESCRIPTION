@@ -1,11 +1,11 @@
 Package: miLAG
 Type: Package
-Title: Calculates microbial lag duration (on the population level) from provided growth curve data
+Title: Calculates Microbial Lag Duration (on the Population Level) from Provided Growth Curve Data
 Version: 1.0
-Date: 2023-03-21
+Date: 2023-05-31
 Author: Bogna Smug: bogna.smug@uj.edu.pl
 Maintainer: Bogna Smug <bogna.smug@uj.edu.pl>
-Description: More about what it does (maybe more than one line)
-License: Please cite: ... Please note the authors take no responsibility for the results. Calculating lags is tricky and the result may not always have a strict biological interpretation. 
+Description: A shiny-based application and R package for calculating the duration of microbial lag phase. 
+License: GPL-3
 RoxygenNote: 7.2.3
-Depends: R (>= 4.1.0), dplyr (>= 1.0.8)
+Depends: R (>= 4.1.0), dplyr (>= 1.0.8), ggplot2 (>= 3.4.1), testthat (>= 3.1.8)
