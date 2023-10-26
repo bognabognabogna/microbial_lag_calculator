@@ -557,20 +557,28 @@ calc_baranyi_fit_lag <- function(data, n0, init_lag = NULL, init_gr_rate = NULL,
 #'
 #' Plots the provided growth curve (one single growth curve) on logarithmic scale
 #' @param data_new a data frame with two required columns names: "time" and "biomass"
+#' @param log10_transform if to plot y axis (biomass) on log10 scale
 #' @returns ggplot object with a growth curve
 #' @export
-plot_data <- function(data_new) {
+plot_data <- function(data_new, log10_transform = TRUE) {
+  if (log10_transform) {
   data_new <- data_new %>%
-    mutate(log10_biomass = log10(biomass))
-  g <- ggplot(data_new)  +
-    geom_line(aes(x = time, y = log10_biomass), col = "blue") +
-    geom_point(aes(x = time, y = log10_biomass), col = "blue") +
+    mutate(biomass = log10(biomass))
+  }
+  g <- ggplot(data_new, aes(x = time, y = biomass))  +
+    geom_line(col = "blue") +
+    geom_point(col = "blue") +
     xlab("time") +
-    ylab("Log10(biomass)") +
     theme(axis.text.y.right = element_text(colour="black"),
           axis.text.y = element_text(colour="blue"),
           axis.title.y = element_text(colour="blue"),
-          axis.title.y.right = element_text(colour="black"))
+          axis.title.y.right = element_text(colour="black")) 
+  
+  if (log10_transform) {
+    g = g + ylab("Log10(biomass)")
+  } else {
+    g = g +ylab("Biomass")
+  }
   return(g)
 
 }
@@ -695,56 +703,58 @@ fit_max_infl_lag <- function(data) {
 #'
 #' Plots the provided growth curve (one single growth curve) together with the calculated lag and and the rationale for lag calculation
 #' @param data_new a data frame output by Calculate.Lag function: it needs to have the following columns: "time", "biomass", "tangent.point", "predicted.data", "threshold", "N0", "second.deriv.b", "line.intercept", "line.slope"
+#' @param log10_transform if to plot y axis (biomass) on log10 scale
 #' @param print_lag_info if set to "TRUE" prints the lag length on the graph
 #' @returns ggplot object with a growth curve
 #' @export
-plot_lag_fit <- function(data_new, print_lag_info = TRUE) {
+plot_lag_fit <- function(data_new, print_lag_info = TRUE, log10_transform = TRUE) {
   max_narm <- function(x) ifelse( !all(is.na(x)), max(x, na.rm=T), NA)
-  min_narm <- function(x) ifelse( !all(is.na(x)), max(x, na.rm=T), NA)
+  min_narm <- function(x) ifelse( !all(is.na(x)), min(x, na.rm=T), NA)
+  lag.method = unique(data_new$lag_calculation_method)
   
   data_new <- data_new %>%
     group_by(curve_id) %>%
     mutate(x_mid = mean(time),
            lag_info = paste0("Lag = ", round(lag, 3), "."),
-           log_biomass = log(biomass),
-           log_10_tangent_point = log10(tangent_point),
-           log_10_biomass = log10(biomass),
-           log_10_predicted = log10(predicted_data),
-           log_10_threshold = log10(threshold),
-           y_max_for_curve = max(log_10_biomass),
-           y_min_for_curve = min(log_10_biomass),
-           log10N0 = log10(exp(log(n0))),
-           text_y = 1.005*y_max_for_curve,
            max_second_deriv_b = max_narm(second_deriv_b),
-           min_second_deriv_b = min_narm(second_deriv_b),
-           second_deriv_b_scaled = (second_deriv_b - min_second_deriv_b)/(max_second_deriv_b - min_second_deriv_b)*(y_max_for_curve - y_min_for_curve) + y_min_for_curve
+           min_second_deriv_b = min_narm(second_deriv_b)) %>%
+    ungroup()
+  
+  if (log10_transform) {
+    data_new <- data_new %>%
+      mutate(
+        tangent_point = log10(tangent_point),
+        biomass = log10(biomass),
+        predicted_data = log10(predicted_data),
+        threshold = log10(threshold),
+         n0 = log10(exp(log(n0))),
+        line_intercept = line_intercept/log(10),
+        line_slope = line_slope/log(10))
+  }
+  
+  data_new <- data_new %>%
+    mutate(
+        y_max_for_curve = max(biomass),
+        y_min_for_curve = min(biomass),
+        text_y = 1.005*y_max_for_curve,
+        second_deriv_b_scaled = (second_deriv_b - min_second_deriv_b)/(max_second_deriv_b - min_second_deriv_b)*(y_max_for_curve - y_min_for_curve) + y_min_for_curve
            #y.limit = 1.1*y.max.for.curve
     ) %>%
     ungroup() %>%
-    mutate(min_log10N0 = min(log_10_biomass),
-           max_log10N0 = max(log_10_biomass),
-           log10_intercept = line_intercept/log(10),
-           log10_slope = line_slope/log(10))
+    mutate(min_N0 = min(biomass),
+           max_N0 = max(biomass))
 
+  
   max_time <- max(data_new$time)
-
   size_n0_line <- 1
   size_lag_line <- 1
-  g <- ggplot(data_new)  +
-    geom_vline(aes(xintercept = lag), size = size_lag_line, col = "red", linetype = "dashed") +
-    geom_line(aes(x = time, y = log_10_biomass), col = "blue") +
-    #geom_point(aes(x= time, y = log10.biomass), col = "blue") +
-    geom_point(aes(x = time, y = log_10_tangent_point), col = "darkgreen", size = 2, na.rm = TRUE) +
-    geom_line(aes(x = time, y = log_10_predicted), col = "darkgreen", na.rm = TRUE) +
-    geom_line(aes(x = time, y = log_10_threshold), col = "darkgreen", na.rm = TRUE) +
-    geom_line(aes(x = time, y = second_deriv_b_scaled), col = "darkgreen", alpha = 0.5, na.rm = TRUE) +
-    geom_hline(aes(yintercept = log10N0), size = size_n0_line, col = "black", na.rm = TRUE) +
-    geom_abline(aes(intercept = log10_intercept, slope = log10_slope), col = "darkgreen", na.rm = TRUE) +
+  g <- ggplot(data_new, aes(x = time, y = biomass))  +
+    geom_vline(aes(xintercept = lag), linewidth = size_lag_line, col = "red", linetype = "dashed") +
+    geom_line(col = "blue") +
     xlab("time") +
     xlim(c(0, max_time)) +
-    ylab("Log10(biomass)") +
-    #ylim(c(min(data.new$log.10.biomass), max(data.new$log.10.biomass))) +
     facet_grid(curve_id ~ lag_calculation_method, scales = "free_y") +
+    theme_bw() +
     theme(axis.text.y.right = element_text(colour = "black"),
           axis.text.y = element_text(colour = "blue"),
           axis.title.y = element_text(colour = "blue"),
@@ -753,6 +763,37 @@ plot_lag_fit <- function(data_new, print_lag_info = TRUE) {
   if (print_lag_info) {
     g <- g +  geom_text(aes(x = x_mid, y = text_y, label = lag_info), size = 6, col = "red")
   }
+  if (log10_transform) {
+    g = g + ylab("log10(biomass)")
+  } else {
+    g = g + ylab("Biomass")
+  }
+
+
+  
+  if (length(lag.method) == 1 & lag.method == "biomass increase") {
+    g = g + 
+      geom_line(aes(y = threshold), col = "darkgreen", na.rm = TRUE) 
+  }
+  if (length(lag.method) == 1 & lag.method == "tangent") {
+    g = g + 
+      geom_hline(aes(yintercept = n0), linewidth = size_n0_line, col = "black", na.rm = TRUE) +
+      geom_point(aes(y = tangent_point), col = "darkgreen", size = 2, na.rm = TRUE) 
+    # on non-log scale it doesn't make sense to plot the tangent line because it is tangent to the log of biomass
+    if (log10_transform) {
+      g = g + 
+        geom_abline(aes(intercept = line_intercept, slope = line_slope), col = "darkgreen", na.rm = TRUE) 
+    }
+  }
+  if (length(lag.method) == 1 & lag.method == "parameter fitting to a model" & any(!is.na(data_new$lag))) {
+    g = g + 
+      geom_line(aes(y = predicted_data), col = "darkgreen", na.rm = TRUE)
+  }
+  if (length(lag.method) == 1 & lag.method == "max growth acceleration") {
+    g = g + 
+      geom_line(aes(y = second_deriv_b_scaled), col = "darkgreen", alpha = 0.5, na.rm = TRUE) 
+  }
+
   return(g)
 }
 
