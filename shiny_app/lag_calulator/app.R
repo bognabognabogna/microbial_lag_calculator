@@ -341,7 +341,7 @@ server <- shinyServer(function(input, output, session) {
   growth.curve.data = reactive({
     message = ""
     if (is.null(input$growth.curve.file)) {
-      data.path = "R/simulated_data_multiple_curves.csv" #"R/example_data.csv"
+      data.path = "R/chosen_exampless_curves1to3_biomass_ml_for_app.csv" #"R/example_data.csv"
     } else {
       data.path =  input$growth.curve.file$datapath
     }
