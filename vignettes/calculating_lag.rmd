@@ -1,0 +1,90 @@
+---
+title: "Calculating Lags for Growth Models"
+author: "Maks Necki"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+This vignette introduces two functions, *calc_lag_fit_to_logistic_with_lag* and *calc_lag_fit_to_baranyi_with_lag*, which are used to calculate lag values for Logistic and Baranyi growth models, respectively.
+
+## The calc_lag_fit_to_logistic_with_lag Function
+### Introduction
+The calc_lag_fit_to_logistic_with_lag function runs the nlsLM/nls algorithm of the user's choice to fit the Logistic growth model parameters to data. It calculates the lag parameter and returns the result along with the nls fitting object.
+
+### Usage
+The function takes the following parameters:
+
+- **gr_curve**: Data from a specific growth curve with columns "time" and "biomass."
+- **n0**: The initial biomass.
+- **init_gr_rate**: Initial value for the growth rate.
+- **init_K**: Initial value for the saturation parameter K.
+- **init_lag**: Initial value for the lag parameter.
+- **algorithm**: Defaults to "auto," which chooses between bounded and unbounded Levenberg-Marquardt method and the bounded port method.
+- **max_iter**: Maximum number of iterations (default is 100).
+- **lower_bound**: Lower bound for the bounded nls optimization (default is 0).
+The function returns the lag and the nls fitting object with parameters fitted to the logistic model.
+
+Examples
+``` {r eval=FALSE}
+# Load required libraries
+library(dplyr)
+
+# Generate example growth curve data
+set.seed(123)
+time <- 1:10
+biomass <- c(0.1, 0.3, 0.7, 1.5, 3.0, 5.0, 8.0, 12.0, 18.0, 25.0)
+gr_curve <- data.frame(time = time, biomass = biomass)
+
+# Calculate lag for the Logistic model
+lag_result <- calc_lag_fit_to_logistic_with_lag(gr_curve, n0 = 0.1, init_gr_rate = 0.5, init_K = 30, init_lag = 0.5)
+
+# Print the calculated lag
+lag_result$lag_N
+```
+## The calc_lag_fit_to_baranyi_with_lag Function
+### Introduction
+The calc_lag_fit_to_baranyi_with_lag function runs nlsLM/nls algorithms to fit the Baranyi growth model parameters to data. It calculates the lag parameter and returns the result along with the nls fitting object.
+
+### Usage
+The function takes the following parameters:
+
+- **gr_curve**: Data from a specific growth curve with columns "time" and "biomass."
+- **LOG10N0**: Initial value for the LOG10N0 parameter.
+- **init_lag**: Initial value for the lag parameter.
+- **init_mumax**: Initial value for the mumax parameter.
+- **init_LOG10Nmax**: Initial value for the LOG10Nmax parameter.
+- **algorithm**: Defaults to "auto," which chooses between bounded and unbounded Levenberg-Marquardt method and the bounded port method.
+- **max_iter**: Maximum number of iterations (default is 100).
+- **lower_bound**: Lower bound for the bounded nls optimization (default is 0).
+The function returns the lag and the nls fitting object with parameters fitted to the Baranyi model.
+
+### Examples
+``` {r eval= FALSE}
+# Load required libraries
+library(dplyr)
+
+# Generate example growth curve data
+set.seed(123)
+time <- 1:10
+biomass <- c(0.1, 0.3, 0.7, 1.5, 3.0, 5.0, 8.0, 12.0, 18.0, 25.0)
+gr_curve <- data.frame(time = time, biomass = biomass)
+
+# Calculate lag for the Baranyi model
+lag_result <- calc_lag_fit_to_baranyi_with_lag(gr_curve, LOG10N0 = NULL, init_lag = NULL, init_mumax = NULL, init_LOG10Nmax = NULL, algorithm = "auto")
+
+# Print the calculated lag
+lag_result$lag_N
+```
+### Conclusion
+These functions are useful for calculating lag values for Logistic and Baranyi growth models based on the provided data. The calculated lag can be used for further analysis and modeling of bacterial growth curves.
