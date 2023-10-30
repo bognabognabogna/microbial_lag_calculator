@@ -53,11 +53,11 @@ ui <- shinyUI(fluidPage(
                          strong("1.	Upload your dataset."),
                          div("The accepted file formats are csv and txt. The dataset must contain two required columns as specified below:"),
                          div("(i) the first column: time (preferably in hours)"),
-                         div("(ii) the second column: population size (preferably in CFU/mL)"),
+                         div("(ii) the second column: biomass i.e. population size (preferably in CFU/mL, otherwise in OD)"),
                          div("(iii) the third optional column: curve id (an identifier for a growth curve if dataset consists of multiple growth curves)"),
-                         div("The population size is recommend to be measured by biomass or CFU values instead of raw absorbance,
+                         div("The population size is recommend to be measured by CFU/mL values instead of raw absorbance (OD),
                     This is because the correlation between CFU number and absorbance is rarely linear.
-                      However, if you’re unable to provide CFU or biomass values, the calculator will also work for absorbance data (assuming OD is directly proportional to the CFU).
+                      However, if you’re unable to provide CFU values, the calculator will also work for absorbance data (assuming OD is directly proportional to the CFU).
                       After uploading your dataset, specify the column and decimal separators."),
                          div("If your dataset consists of multiple growth curves, they should be provided in long format i.e. one curve under another and identified by the curve_id provided in the third column.
                              If multiple growth curves are technical replicates, we advise to fit the lag to the averaged growth curve, 
@@ -67,7 +67,7 @@ ui <- shinyUI(fluidPage(
                          strong("3.	Chose lag duration calculation method"),
                          div("
                     Within this calculator we allow for a choice of one of the four most commonly used methods of lag duration calculation:"),
-                         div("BIOMASS INCREASE - an increase of biomass (or absorbance) by the user specified value from the beginning of growth (or minimal biomass/absorbance value)"),
+                         div("BIOMASS INCREASE - an increase of biomass (CFU/ml or OD) by the user specified value from the beginning of growth (or minimal biomass value)"),
                          div("MAX GROWTH ACCELERATION - finds the point of the growth curve where the second derivative is maximal"),
                          div("TANGENT METHOD - the intersection of the initial density line and the  line tangent to the part of the curve where the growth rate is maximal"),
                          div("PARAMETER FITTING TO A MODEL - uses fitting procedures to simultaneously fit all growth curve parameters (e.g. lag phase length, maximal growth rate, and maximal population size). "),
@@ -116,7 +116,7 @@ ui <- shinyUI(fluidPage(
                                          br(),
                                          conditionalPanel("input.manual == 'No'",
                                          fileInput("growth.curve.file",
-                                                   "Choose CSV or TXT File (first column = time, second column = biomass)",
+                                                   "Choose CSV or TXT File (first column = time, second column = biomass i.e. CFU/ml or OD)",
                                                    multiple = FALSE,
                                                    accept = c("text/csv","text/comma-separated-values,text/plain", ".csv"),
                                                    placeholder = "No file selected, using example data:",
@@ -155,7 +155,7 @@ ui <- shinyUI(fluidPage(
                                      selected = ","))),
                          fluidRow(
                            column(12, align = "center",
-                                  selectInput("separate.fit",
+                                  selectInput("separate._fit",
                                               label = "Do you want to fit lag to every curve separately or to the mean?",
                                               choices = c("Separete lags", "Fit lag to the mean"),
                                               selected = "Separate lags"))),
@@ -183,13 +183,13 @@ ui <- shinyUI(fluidPage(
                                        choices = c("no", "yes"),
                                        selected = "no"),
                            br(),
-                             selected = '3RS3R')),
                          ),
                          mainPanel(
                            verbatimTextOutput("not_enough_many_points_message"),
                            br(),
                            h5("Growth curve data after pre-processing"),
                            uiOutput("growth.curve.data.processed.plot"),
+                           textOutput("sd.explanation.message.1"),
                            br(),
                          )),
                 tabPanel("Lag calculation",
@@ -280,7 +280,7 @@ ui <- shinyUI(fluidPage(
                                            h5("Note that you may be able improve the efficiency of the methods by varying the parameters or further pre-processing the data.
               For example, if parameter fitting method is chosen it may be helpful to cut out the stationary phase data (within data pre-processing tab)."),
                                            uiOutput("growth.curve.plot"),
-                                           #plotOutput("growth.curve.plot"),
+                                           textOutput("sd.explanation.message.2"),
                                          ))),width = 8)
     )
 
@@ -370,7 +370,7 @@ server <- shinyServer(function(input, output, session) {
           }
           
           if (ncol(data) < 2) {
-            error("At least two columns are needed (time and biomass)")
+            error("At least two columns are needed (time and cell count)")
           } else if (ncol(data) == 2) {
             data = data %>% mutate(curve_id = "provided_growth_curve")
           }
@@ -427,7 +427,7 @@ server <- shinyServer(function(input, output, session) {
     # for CFU/mL work on log scale
     growth.curve.data.sd = reactive({
       data = growth.curve.data()$data
-      if (input$separate.fit == "Fit lag to the mean") {
+      if (input$separate._fit == "Fit lag to the mean") {
         if (log10_transform_param()) { 
           data = data %>%
             mutate(biomass = log10(biomass))
@@ -443,9 +443,24 @@ server <- shinyServer(function(input, output, session) {
       return(sd.data)
     })
     
+    output$sd.explanation.message.1 <- renderText({
+      if (input$separate._fit == "Fit lag to the mean") {
+        "Error bars represent standard devation."
+      } else {
+        ""
+      }
+    })
+    output$sd.explanation.message.2 <- renderText({
+      if (input$separate._fit == "Fit lag to the mean") {
+      "Lag has been fitted to the mean growth curve.\n
+      Error bars represent standard devation."
+      } else {
+        ""
+      }
+    })
     
     data.for.lag.calculation = reactive({
-      if (input$separate.fit == "Fit lag to the mean") {
+      if (input$separate._fit == "Fit lag to the mean") {
         data = growth.curve.data()$data %>%
           group_by(time) %>%
           summarise(biomass = mean(biomass, na.rm = TRUE)) %>%
