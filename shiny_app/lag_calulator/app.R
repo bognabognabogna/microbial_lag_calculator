@@ -57,8 +57,9 @@ ui <- shinyUI(fluidPage(
                          div("(iii) the third optional column: curve id (an identifier for a growth curve if dataset consists of multiple growth curves)"),
                          div("The population size is recommend to be measured by CFU/mL values instead of raw absorbance (OD),
                     This is because the correlation between CFU number and absorbance is rarely linear.
-                      However, if you’re unable to provide CFU values, the calculator will also work for absorbance data (assuming OD is directly proportional to the CFU).
-                      After uploading your dataset, specify the column and decimal separators."),
+                      However, if you’re unable to provide CFU values, the calculator will also work for absorbance data (assuming OD is directly proportional to the CFU)."),
+                      strong("If you decide to use OD values, remember to blank correct the data: 0 OD should mean no cells in the culture."),
+                      div("After uploading your dataset, specify the column and decimal separators."),
                          div("If your dataset consists of multiple growth curves, they should be provided in long format i.e. one curve under another and identified by the curve_id provided in the third column.
                              If multiple growth curves are technical replicates, we advise to fit the lag to the averaged growth curve, 
                              otherwise lags can be fitted separately to each growth curve."),
