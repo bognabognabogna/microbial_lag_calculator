@@ -16,10 +16,10 @@ library(tools)
 library(minpack.lm)
 library(shinydisconnect)
 library(remotes)
-# miLAg package can be installed from here:
+# miLAG package can be installed from here:
 #install_github("https://github.com/bognabognabogna/microbial_lag_calulator", dependencies = TRUE, upgrade = "always", force = FALSE)
-#library(miLAG)
-source("~/MGG Dropbox/Bogna Smug/Projects/Quiesence/2022_Lags/GitHub/microbial_lag_calulator/R/milags_functions.R")
+library(miLAG)
+#source("~/MGG Dropbox/Bogna Smug/Projects/Quiesence/2022_Lags/GitHub/microbial_lag_calulator/R/milags_functions.R")
 
 
 available.methods = list("max growth acceleration",
@@ -144,7 +144,7 @@ ui <- shinyUI(fluidPage(
                          fluidRow(
                            column(12, align="center",
                                   selectInput("manual",
-                                              label = "Would you prefer to input data manualy (paste from Excel)?",
+                                              label = "Would you prefer to input data manually (paste from Excel)?",
                                               choices = c("Yes", "No"),
                                               selected = "No"))),
                          br(),
