@@ -2,7 +2,7 @@
 # miLAG: microbial lag phase duration analysis
 ![licence](https://img.shields.io/badge/Licence-GPL--3-blue.svg)
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](http://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/)
-[![codecov](https://codecov.io/gh/jungwirt/microbial_lag_calculator/branch/main/graph/badge.svg?token=HR39P6M4OW)](https://codecov.io/gh/jungwirt/microbial_lag_calculator)
+[![codecov](https://codecov.io/gh/jungwirt/microbial_lag_calculator/branch/main/graph/badge.svg?token=HR39P6M4OW)](https://app.codecov.io/gh/jungwirt/microbial_lag_calculator)
 
 
 Authors: Bogna J. Smug [<img src="https://orcid.org/assets/vectors/orcid.logo.icon.svg" width="16px" height="16px">][2],
