@@ -4,10 +4,12 @@
 \alias{plot_data}
 \title{plot_data}
 \usage{
-plot_data(data_new)
+plot_data(data_new, log10_transform = TRUE)
 }
 \arguments{
 \item{data_new}{a data frame with two required columns names: "time" and "biomass"}
+
+\item{log10_transform}{if to plot y axis (biomass) on log10 scale}
 }
 \value{
 ggplot object with a growth curve

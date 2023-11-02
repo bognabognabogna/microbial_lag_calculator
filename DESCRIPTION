@@ -3,9 +3,11 @@ Type: Package
 Title: Calculates Microbial Lag Duration (on the Population Level) from Provided Growth Curve Data
 Version: 1.0
 Date: 2023-05-31
-Authors@R: c(person("Smug J.B.", email = "bogna.smug@uj.edu.pl", role = c("aut", "cre"), comment = c(ORCID = "0000-0001-9364-163X")))
+Authors@R: c(person("Bogna Smug", email = "bogna.smug@uj.edu.pl", role = c("aut", "cre"), comment = c(ORCID = "0000-0001-9364-163X")))
 Maintainer: Bogna Smug <bogna.smug@uj.edu.pl>
 Description: A shiny-based application and R package for calculating the duration of microbial lag phase. 
-License: GPL-3
+License: GPL-3 + file LICENSE
 RoxygenNote: 7.2.3
 Depends: R (>= 4.1.0), dplyr (>= 1.0.8), ggplot2 (>= 3.4.1), testthat (>= 3.1.8)
+Suggests: knitr
+VignetteBuilder: knitr 
