@@ -5,6 +5,7 @@
 ^.dev$
 ^.gitlab-ci\.yml$
 ^API$
+^shiny_app$
 ^CITATION\.cff$
 ^CODE_OF_CONDUCT\.md$
 ^CONDUCT\.md$
