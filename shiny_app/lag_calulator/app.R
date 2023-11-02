@@ -276,6 +276,8 @@ ui <- shinyUI(fluidPage(
                                            br(),
                                            h5("Lag fitting and growth curve data plot"),
                                            tableOutput("lag.value"),
+                                           downloadButton("downloadData", "Download"),
+                                           br(),
                                            tableOutput("lag.stats"),
                                            br(),
                                            h5("Note that you may be able improve the efficiency of the methods by varying the parameters or further pre-processing the data.
@@ -565,6 +567,17 @@ server <- shinyServer(function(input, output, session) {
       lag.max = lag.value()$lag %>% max(na.rm = TRUE))
   })
     
+  
+  output$downloadData <- downloadHandler(
+    filename = function() {
+      "lag.values.csv"
+    },
+    content = function(file) {
+      write.csv(lag.value(), file)
+    }
+  )
+  
+  
   output$lag.value = renderTable(lag.value(),
                                  rownames= FALSE)
   output$lag.stats = renderTable(lag.stats(),
