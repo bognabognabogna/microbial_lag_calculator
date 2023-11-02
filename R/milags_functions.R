@@ -90,7 +90,7 @@ fit_exp_lag_to_curve <- function(data, n0, tangent_method = "to.point", curve_po
 #' Compares results of 3 objects obtained from running nls
 #' @param nls_LM_no_bound first object resulting from running nls
 #' @param nls_PORT second object resulting from running nls
-#' @param nls_LM third object resulting from running nls
+#' @param nlsres_LM third object resulting from running nls
 #' @returns the best fitting object (lowest Res.Sum Sq provided that all coefficients are nonnegative)
 compare_algorithms <- function(nls_LM_no_bound, nls_PORT, nlsres_LM) {
   if (!all(is.na(nls_LM_no_bound))) {
@@ -320,10 +320,10 @@ calc_lag_fit_to_logistic_with_lag <- function(gr_curve, n0,
 #'
 #' Runs nlsLM/nls algorithms with three different parameter setups to fit the best Logistic model parameters to our data and chooses the best model
 #' @param gr_curve data from one specific growth curve with these two columns: time and biomass
-#' @param n0 the initial biomass
-#' @param init_gr_rate initial value for the growth rate
-#' @param init_K initial value for the saturation parameter K
+#' @param LOG10N0 the decimal logarithm of initial biomass
 #' @param init_lag initial value for the lag parameter
+#' @param init_mumax initial value for the mumax parameter
+#' @param init_LOG10N0max initial value for the LOG10Nmax parameter
 #' @param algorithm defaults to "auto" which chooses between bounded and unbounded Levenberg-Marquardt method and the bounded port method
 #' @param max_iter max. number of itertaions; defaults to 100
 #' @param lower_bound lower.bound for the bounded nls optimisation; defaults to 0
