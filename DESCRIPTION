@@ -1,7 +1,7 @@
 Package: miLAG
 Type: Package
 Title: Calculates Microbial Lag Duration (on the Population Level) from Provided Growth Curve Data
-Version: 1.0
+Version: 1.0.2
 Date: 2023-05-31
 Authors@R: c(person("Bogna Smug", email = "bogna.smug@uj.edu.pl", role = c("aut", "cre"), comment = c(ORCID = "0000-0001-9364-163X")))
 Maintainer: Bogna Smug <bogna.smug@uj.edu.pl>
