@@ -542,6 +542,7 @@ context("Test the make_grwoth_curve_df function")
 
 test_that("Calculating if getting global variables predefined works", {
 
+curve_id = NULL
 time = c(1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10)
 biomass = c(4396571.976, 3807332.496, 4165206.611, 5690282.713, 7727252.94, 19381419.82,
                              13744788.86, 18066675.15, 23651017.71, 29465323.75, 28528881.12, 29448677.51,
