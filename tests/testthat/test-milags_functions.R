@@ -538,5 +538,32 @@ test_that("Getting lag duration value works", {
   expect_equal(get_lag(test_df, method, pars ), lags_data )
 })
 
+context("Test the make_grwoth_curve_df function")
 
+test_that("Calculating if getting global variables predefined works", {
+
+time = c(1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10)
+biomass = c(4396571.976, 3807332.496, 4165206.611, 5690282.713, 7727252.94, 19381419.82,
+                             13744788.86, 18066675.15, 23651017.71, 29465323.75, 28528881.12, 29448677.51,
+                             29144257.31, 32086465.47, 29732262.17, 29888494.33, 30720558.23, 31220300,
+                             32074919.83)
+  if(!(is.numeric(time) | is.integer(time))) stop("Time must be a numeric vector")
+  if(!(is.numeric(biomass) | is.integer(biomass))) stop("Biomass must be a numeric vector")
+  length_time <- length(time)
+  length_biomass <- length(biomass)
+  
+  if(length_time != length_biomass)
+    stop( "time and biomass vectors must be of the same length")
+  
+  if(!is.null(curve_id) & length(curve_id) != length_biomass)
+    stop("time and curve_id vectors must be of the same length")
+  
+  if (is.null(curve_id)) {
+    df = data.frame(time = time, biomass = biomass)
+  } else {
+    df = data.frame(time = time, biomass = biomass, curve_id = curve_id)
+  }
+  
+  expect_equal(make_grwoth_curve_df(time, biomass), df))
+})
 
