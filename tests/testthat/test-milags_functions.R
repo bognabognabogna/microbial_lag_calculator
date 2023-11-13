@@ -564,6 +564,6 @@ biomass = c(4396571.976, 3807332.496, 4165206.611, 5690282.713, 7727252.94, 1938
     df = data.frame(time = time, biomass = biomass, curve_id = curve_id)
   }
   
-  expect_equal(make_grwoth_curve_df(time, biomass), df))
+  expect_equal(make_grwoth_curve_df(time, biomass), df)
 })
 
