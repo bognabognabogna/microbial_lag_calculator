@@ -11,6 +11,7 @@
 #' In this case it is not obvious what to assume the initial biomass is.
 #' @import dplyr
 #' @import ggplot2
+#' @import testthat
 #' @returns a value of the initial biomass (either the first observation or the minimum value depending on the parameter N0.method)
 get_n0 <- function(biomass, n0_method) {
   # Get the initial biomass value
@@ -323,7 +324,7 @@ calc_lag_fit_to_logistic_with_lag <- function(gr_curve, n0,
 #' @param LOG10N0 the decimal logarithm of initial biomass
 #' @param init_lag initial value for the lag parameter
 #' @param init_mumax initial value for the mumax parameter
-#' @param init_LOG10N0max initial value for the LOG10Nmax parameter
+#' @param init_LOG10Nmax initial value for the LOG10Nmax parameter
 #' @param algorithm defaults to "auto" which chooses between bounded and unbounded Levenberg-Marquardt method and the bounded port method
 #' @param max_iter max. number of itertaions; defaults to 100
 #' @param lower_bound lower.bound for the bounded nls optimisation; defaults to 0
