@@ -18,19 +18,19 @@ calc_lag_fit_to_baranyi_with_lag(
 \arguments{
 \item{gr_curve}{data from one specific growth curve with these two columns: time and biomass}
 
+\item{LOG10N0}{the decimal logarithm of initial biomass}
+
 \item{init_lag}{initial value for the lag parameter}
+
+\item{init_mumax}{initial value for the mumax parameter}
+
+\item{init_LOG10Nmax}{initial value for the LOG10Nmax parameter}
 
 \item{algorithm}{defaults to "auto" which chooses between bounded and unbounded Levenberg-Marquardt method and the bounded port method}
 
 \item{max_iter}{max. number of itertaions; defaults to 100}
 
 \item{lower_bound}{lower.bound for the bounded nls optimisation; defaults to 0}
-
-\item{n0}{the initial biomass}
-
-\item{init_gr_rate}{initial value for the growth rate}
-
-\item{init_K}{initial value for the saturation parameter K}
 }
 \value{
 lag and the nls fitting object with parameters fitted to logistic model

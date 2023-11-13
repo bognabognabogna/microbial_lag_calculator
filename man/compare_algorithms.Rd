@@ -11,7 +11,7 @@ compare_algorithms(nls_LM_no_bound, nls_PORT, nlsres_LM)
 
 \item{nls_PORT}{second object resulting from running nls}
 
-\item{nls_LM}{third object resulting from running nls}
+\item{nlsres_LM}{third object resulting from running nls}
 }
 \value{
 the best fitting object (lowest Res.Sum Sq provided that all coefficients are nonnegative)

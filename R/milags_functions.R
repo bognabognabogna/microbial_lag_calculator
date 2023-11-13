@@ -1,5 +1,6 @@
 
 ############################################# helper functions #########################################
+
 #' get_n0
 #'
 #' Gets the initial biomass to relate to
@@ -556,6 +557,37 @@ calc_baranyi_fit_lag <- function(data, n0, init_lag = NULL, init_gr_rate = NULL,
 
 
 ############################################# exported functions #########################################
+#' make_grwoth_curve_df
+#'
+#' Create a growth curve data frame that can be later passed to the lag clculation functions
+#' @param time numeric vector of times when biomass was measured  (chronologically ordered as in growth curve)
+#' @param biomass numeric vector of measured biomass values  (chronologically ordered as in growth curve)
+#' @param curve_id character vector of growth curve identifiers (i.e. if there are multiple measurements done at the same time point, they should have different curve_id)
+#' @returns a data frame representing growth curve data
+#' @export
+make_grwoth_curve_df <- function(time, biomass, curve_id = NULL) {
+  
+  if(!(is.numeric(time) | is.integer(time))) stop("Time must be a numeric vector")
+  if(!(is.numeric(biomass) | is.integer(biomass))) stop("Biomass must be a numeric vector")
+  length_time <- length(time)
+  length_biomass <- length(biomass)
+  
+  if(length_time != length_biomass)
+    stop( "time and biomass vectors must be of the same length")
+  
+  if(!is.null(curve_id) & length(curve_id) != length_biomass)
+    stop("time and curve_id vectors must be of the same length")
+  
+  if (is.null(curve_id)) {
+    df = data.frame(time = time, biomass = biomass)
+  } else {
+    df = data.frame(time = time, biomass = biomass, curve_id = curve_id)
+  }
+  return(df)
+}
+
+
+
 #' plot_data
 #'
 #' Plots the provided growth curve (one single growth curve) on logarithmic scale
@@ -809,21 +841,21 @@ plot_lag_fit <- function(data_new, print_lag_info = TRUE, log10_transform = TRUE
 #' @param data a data frame with two required columns names: "time" and "biomass",and one optional column: "curve_id"
 #' This is data from may come from multiple growth curves
 #' @param method method of lag calculation, choose one of the follwoing: "exponential", "biomass increase", "max growth acceleration", "parameter fitting to a model"
-#' @param pars a list of parameters. Get.default.parameters function can be used to get the default ones. Otherwise create your onwn list with the following names: \n
-#' - model: if method = "parameter fitting to a model" , one of the following models needs to be chosen: "logistic", "baranyi" \n
+#' @param pars a list of parameters. Get.default.parameters function can be used to get the default ones. Otherwise create your onwn list with the following names: 
+#' - model: if method = "parameter fitting to a model" , one of the following models needs to be chosen: "logistic", "baranyi" 
 #' - n0_method: first.observation" if the first point is taken as the initial biomass or
 #' "minimal.observation" if the minimal biomass is taken is the initial point.
 #' In "healthy" growth curves these options should be equivalent
 #' but sometimes a drop in OD/biomass is observed at the beginning of a growth curve.
-#' In this case it is not obvious what to assume the initial biomass is. \n
+#' In this case it is not obvious what to assume the initial biomass is. 
 #' - tangent_method "local.regression" (if the tangent is fitted to a number of points around the maximal growth rate)
 #' or "to.point" (if the tangent is fitted only to the point where the growth rate is maximal); defaults to "to.point"
-#' - threshold: A value of the biomass increase that we can surely associate with the end of the lag phase rather than random variation durinh the lag. Defaults to 10^2 \n
+#' - threshold: A value of the biomass increase that we can surely associate with the end of the lag phase rather than random variation durinh the lag. Defaults to 10^2 
 #' - curve_points: if tangent.method = "local.regression" then curve_points is the number of points the line is fitted to;
-#' defaults to 3 i.e. the point with the maximal uptake rate one point before and one point after \n
-#' - init_gr_rate: if logistic model is fitted. Defaults to  NULL in which case the initial value will be based on the data \n
-#' - init_lag: if a logistic model is fitted, Defaults to NULL in which case the initial value will be based on the data \n
-#' - algorithm: if method = "parameter fitting to a model", nls algorithm to run the model fit; defaults to "auto" which will choose the best between bounded and unbounded "Levenberg-Marquardt" and bounded "port" \n
+#' defaults to 3 i.e. the point with the maximal uptake rate one point before and one point after 
+#' - init_gr_rate: if logistic model is fitted. Defaults to  NULL in which case the initial value will be based on the data 
+#' - init_lag: if a logistic model is fitted, Defaults to NULL in which case the initial value will be based on the data
+#' - algorithm: if method = "parameter fitting to a model", nls algorithm to run the model fit; defaults to "auto" which will choose the best between bounded and unbounded "Levenberg-Marquardt" and bounded "port" 
 #' - max_iter =  if method = "parameter fitting to a model", the maximum number of nls iterations, defaults to  100
 #' @returns lag per each curve_id
 #' @export
@@ -845,21 +877,21 @@ get_lag <- function(data, method, pars) {
 #' @param data a data frame with two required columns names: "time" and "biomass",and one optional column: "curve_id"
 #' This is data from may come from multiple growth curves
 #' @param method method of lag calculation, choose one of the follwoing: "exponential", "biomass increase", "max growth acceleration", "parameter fitting to a model"
-#' @param pars a list of parameters. Get.default.parameters function can be used to get the default ones. Otherwise create your onwn list with the following names: \n
-#' - model: if method = "parameter fitting to a model" , one of the following models needs to be chosen: "logistic", "baranyi" \n
+#' @param pars a list of parameters. Get.default.parameters function can be used to get the default ones. Otherwise create your onwn list with the following names:
+#' - model: if method = "parameter fitting to a model" , one of the following models needs to be chosen: "logistic", "baranyi"
 #' - n0_method: first.observation" if the first point is taken as the initial biomass or
 #' "minimal.observation" if the minimal biomass is taken is the initial point.
 #' In "healthy" growth curves these options should be equivalent
 #' but sometimes a drop in OD/biomass is observed at the beginning of a growth curve.
-#' In this case it is not obvious what to assume the initial biomass is. \n
+#' In this case it is not obvious what to assume the initial biomass is. 
 #' - tangent_method "local.regression" (if the tangent is fitted to a number of points around the maximal growth rate)
 #' or "to.point" (if the tangent is fitted only to the point where the growth rate is maximal); defaults to "to.point"
-#' - threshold: A value of the biomass increase that we can surely associate with the end of the lag phase rather than random variation durinh the lag. Defaults to 10^2 \n
+#' - threshold: A value of the biomass increase that we can surely associate with the end of the lag phase rather than random variation durinh the lag. Defaults to 10^2 
 #' - curve_points: if tangent.method = "local.regression" then curve_points is the number of points the line is fitted to;
-#' defaults to 3 i.e. the point with the maximal uptake rate one point before and one point after \n
-#' - init_gr_rate: if logistic model is fitted. Defaults to  NULL in which case the initial value will be based on the data \n
-#' - init_lag: if a logistic model is fitted, Defaults to NULL in which case the initial value will be based on the data \n
-#' - algorithm: if method = "parameter fitting to a model", nls algorithm to run the model fit; defaults to "auto" which will choose the best between bounded and unbounded "Levenberg-Marquardt" and bounded "port" \n
+#' defaults to 3 i.e. the point with the maximal uptake rate one point before and one point after
+#' - init_gr_rate: if logistic model is fitted. Defaults to  NULL in which case the initial value will be based on the data
+#' - init_lag: if a logistic model is fitted, Defaults to NULL in which case the initial value will be based on the data
+#' - algorithm: if method = "parameter fitting to a model", nls algorithm to run the model fit; defaults to "auto" which will choose the best between bounded and unbounded "Levenberg-Marquardt" and bounded "port"
 #' - max_iter =  if method = "parameter fitting to a model", the maximum number of nls iterations, defaults to  100
 #' @returns growth curve data (time, biomass, curve_id) with the following additional columns:  log_biomass, lag, line_slope, line_intercept, lag_calc_method, predicted_data, diff, second_deriv_b, tangent_point, threshold
 #' @export
