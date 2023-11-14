@@ -10,7 +10,7 @@
 #' In "healthy" growth curves these options should be equivalent
 #' but sometimes a drop in OD/biomass is observed at the beginning of a growth curve.
 #' In this case it is not obvious what to assume the initial biomass is.
-#' @import dplyr
+#' @rawNamespace import(dplyr, except = matches)
 #' @import ggplot2
 #' @import testthat
 #' @returns a value of the initial biomass (either the first observation or the minimum value depending on the parameter N0.method)
