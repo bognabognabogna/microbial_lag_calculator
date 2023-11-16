@@ -5,10 +5,8 @@
 # Learn more about the roles of various files in:
 # * https://r-pkgs.org/tests.html
 # * https://testthat.r-lib.org/reference/test_package.html#special-files
-install.packages("testthat", repos = "http://cran.us.r-project.org")
-install.packages("ggplot2", repos = "http://cran.us.r-project.org")
-library(ggplot2)
-library(testthat)
-library(miLAG)
 
+library(miLAG)
+library(dplyr)
+library(testthat)
 test_check("miLAG")
