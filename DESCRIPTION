@@ -10,6 +10,7 @@ Description:  Microbial growth is often measured by growth curves i.e. a table o
   Citation: "How to determine microbial lag phase duration?", M. Opalek, B. Smug, D. Wloch-Salamon (2022) <doi:https://doi.org/10.1101/2022.11.16.516631>. 
 License: GPL-3
 RoxygenNote: 7.2.3
-Depends: R (>= 4.1.0), dplyr (>= 1.0.8), ggplot2 (>= 3.4.1), testthat (>= 3.1.8), minpack.lm (>= 1.2.4), nlsMicrobio (>= 0.0.3)
+Depends: R (>= 4.3.0), dplyr (>= 1.0.8), ggplot2 (>= 3.4.1), testthat (>= 3.1.8), minpack.lm (>= 1.2.2), nlsMicrobio (>= 0.0.3)
 Suggests: knitr, rmarkdown
+Encoding: UTF-8
 VignetteBuilder: knitr 

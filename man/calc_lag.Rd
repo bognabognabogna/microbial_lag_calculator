@@ -18,10 +18,10 @@ This is data from may come from multiple growth curves}
 "minimal.observation" if the minimal biomass is taken is the initial point.
 In "healthy" growth curves these options should be equivalent
 but sometimes a drop in OD/biomass is observed at the beginning of a growth curve.
-In this case it is not obvious what to assume the initial biomass is. 
+In this case it is not obvious what to assume the initial biomass is.
 - tangent_method "local.regression" (if the tangent is fitted to a number of points around the maximal growth rate)
 or "to.point" (if the tangent is fitted only to the point where the growth rate is maximal); defaults to "to.point"
-- threshold: A value of the biomass increase that we can surely associate with the end of the lag phase rather than random variation durinh the lag. Defaults to 10^2 
+- threshold: A value of the biomass increase that we can surely associate with the end of the lag phase rather than random variation durinh the lag. Defaults to 10^2
 - curve_points: if tangent.method = "local.regression" then curve_points is the number of points the line is fitted to;
 defaults to 3 i.e. the point with the maximal uptake rate one point before and one point after
 - init_gr_rate: if logistic model is fitted. Defaults to  NULL in which case the initial value will be based on the data

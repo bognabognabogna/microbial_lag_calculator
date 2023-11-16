@@ -1,8 +1,3 @@
-#' @import dplyr
-#' @import ggplot2
-#' @import minpack.lm
-#' @import nlsMicrobio
-#' @rawNamespace import(testthat, except = getNamespaceExports("testthat"))
 
 ############################################# helper functions #########################################
 #' get_n0
@@ -14,6 +9,11 @@
 #' In "healthy" growth curves these options should be equivalent
 #' but sometimes a drop in OD/biomass is observed at the beginning of a growth curve.
 #' In this case it is not obvious what to assume the initial biomass is.
+#' @import dplyr
+#' @import ggplot2
+#' @import minpack.lm
+#' @import nlsMicrobio
+#' @rawNamespace import(testthat, except = getNamespaceExports("testthat"))
 #' @returns a value of the initial biomass (either the first observation or the minimum value depending on the parameter N0.method)
 get_n0 <- function(biomass, n0_method) {
   # Get the initial biomass value
