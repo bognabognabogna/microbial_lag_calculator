@@ -182,10 +182,8 @@ Jagiellonian University in Kraków, Poland (grant number U1U/W18/NO/28.07) to MO
 Poland, the OPUS grant to D.W.-S. (grant number 2017/25/B/NZ8/01035); the Biology Department research subsidies (grant number N18/DBS/000019 to MO and DWS).
 
 ## Citing `miLAG`
-
-Monika Opalek, Bogna J. Smug, Dominika Wloch-Salamon (2023). *How to determine microbial lag phase duration?*. 
-R package version 0.0.1, <https://github.com/bognabognabogna/microbial_lag_calculator>.
-DOI: [10.1101/2022.11.16.516631](https://doi.org/10.1101/2022.11.16.516631).
+Smug, B. J., Opalek, M., Necki, M., & Wloch-Salamon, D. (2024). Microbial lag calculator: A shiny-based application and an R package for calculating the duration of microbial lag phase. Methods in Ecology and Evolution, 15, 301–307. 
+DOI: [10.1111/2041-210X.14269](https://doi.org/10.1111/2041-210X.14269).
 
 ## Disclaimer
 **miLAG has been developed using the *Dplyr* package in R (R Core Team 2021). Please note the authors take no responsibility for the results. Calculating lags is tricky and the result may not always have a strict biological interpretation.**
