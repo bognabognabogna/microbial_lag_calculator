@@ -108,7 +108,8 @@ compare_algorithms <- function(nls_LM_no_bound, nls_PORT, nlsres_LM) {
   if (!all(is.na(nls_PORT)) & !all(is.na(nlsres_LM))) {
     # if both bounded models are available compare them and choose the better one
     anova_res <- anova(nlsres_LM, nls_PORT)
-    better_model_idx <- which(anova_res$`Res.Sum Sq` == min(anova_res$`Res.Sum Sq`))
+    # in case multiple are same good take the first one
+    better_model_idx <- which(anova_res$`Res.Sum Sq` == min(anova_res$`Res.Sum Sq`))[1]
     if (better_model_idx ==1) {nls_bounded <- nlsres_LM} else if (better_model_idx == 2) {nls_bounded <- nls_PORT}
   } else if (!all(is.na(nls_PORT))) {
     nls_bounded <- nls_PORT
@@ -122,7 +123,8 @@ compare_algorithms <- function(nls_LM_no_bound, nls_PORT, nlsres_LM) {
   if (!all(is.na(nls_bounded)) & !all(is.na(nls_LM_no_bound))) {
     # if both bounded models are available compare them and choose the better one
     anova_res <- anova(nls_bounded, nls_LM_no_bound)
-    better_model_idx <- which(anova_res$`Res.Sum Sq` == min(anova_res$`Res.Sum Sq`))
+    # in case multiple are same good take the first one
+    better_model_idx <- which(anova_res$`Res.Sum Sq` == min(anova_res$`Res.Sum Sq`))[1]
     if (better_model_idx ==1) {nls_a <- nls_bounded} else if (better_model_idx == 2) {nls_a <- nls_LM_no_bound}
   } else if (!all(is.na(nls_bounded))) {
     nls_a <- nls_bounded
