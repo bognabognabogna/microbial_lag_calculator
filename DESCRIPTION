@@ -7,7 +7,7 @@ Authors@R: c(person("Bogna", "Smug", email = "bogna.smug@uj.edu.pl", role = c("a
 Description:  Microbial growth is often measured by growth curves i.e. a table of population sizes and times of measurements. 
   This package allows to use such growth curve data to determine the duration of "microbial lag phase" i.e. the time needed for microbes to restart divisions.
   It implements the most commonly used methods to calculate the lag duration, these methods are discussed and described in Opalek et.al. 2022.
-  Citation: Smug, B. J., Opalek, M., Necki, M., & Wloch-Salamon, D. (2024). Microbial lag calculator: A shiny-based application and an R package for calculating the duration of microbial lag phase. Methods in Ecology and Evolution, 15, 301–307 <doi.org/10.1111/2041-210X.14269>. 
+  Citation: Smug, B. J., Opalek, M., Necki, M., & Wloch-Salamon, D. (2024). Microbial lag calculator: A shiny-based application and an R package for calculating the duration of microbial lag phase. Methods in Ecology and Evolution, 15, 301–307 <doi:10.1111/2041-210X.14269>. 
 License: GPL-3
 RoxygenNote: 7.2.3
 Depends: R (>= 4.3.0), dplyr (>= 1.0.8), ggplot2 (>= 3.4.1), testthat (>= 3.1.8), minpack.lm (>= 1.2.2), nlsMicrobio (>= 0.0.3)
